@@ -158,9 +158,72 @@ function bindSpy() {
   window.addEventListener("scroll", sync, { passive: true });
 }
 
+function bindGlassLight() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const panes = ".hero, .card, .mind-card, .write-card, .career, .inbound, .dock";
+  document.addEventListener(
+    "pointermove",
+    (event) => {
+      const pane = event.target.closest(panes);
+      if (!pane) return;
+      const box = pane.getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      pane.style.setProperty("--lx", `${((event.clientX - box.left) / box.width) * 100}%`);
+      pane.style.setProperty("--ly", `${((event.clientY - box.top) / box.height) * 100}%`);
+    },
+    { passive: true },
+  );
+}
+
+function bindCursorLight() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (matchMedia("(pointer: coarse)").matches) return;
+  const light = document.createElement("div");
+  light.className = "cursor-light";
+  light.setAttribute("aria-hidden", "true");
+  document.body.prepend(light);
+  let x = window.innerWidth * 0.5;
+  let y = 72;
+  let tx = x;
+  let ty = y;
+  let visible = false;
+  const place = () => {
+    light.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  };
+  const loop = () => {
+    x += (tx - x) * 0.14;
+    y += (ty - y) * 0.14;
+    place();
+    requestAnimationFrame(loop);
+  };
+  document.addEventListener(
+    "pointermove",
+    (event) => {
+      if (event.pointerType && event.pointerType !== "mouse") return;
+      tx = event.clientX;
+      ty = event.clientY;
+      if (!visible) {
+        visible = true;
+        x = tx;
+        y = ty;
+        light.classList.add("is-on");
+      }
+    },
+    { passive: true },
+  );
+  document.documentElement.addEventListener("pointerleave", () => {
+    visible = false;
+    light.classList.remove("is-on");
+  });
+  place();
+  requestAnimationFrame(loop);
+}
+
 bindTheme();
 bindClock();
 bindSessions();
 bindJumps();
 bindSpy();
+bindGlassLight();
+bindCursorLight();
 apply(current());
