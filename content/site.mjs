@@ -7,7 +7,7 @@ export const site = Object.freeze({
     who: "I help founders go from idea to launch.",
     how: "Full-stack development, AI agents, and agent orchestration.",
     location: "India",
-    aside: "Philosophy, astrophysics, meditation, classical music.",
+    aside: "Open-source macOS tools and agent systems.",
     photo: { src: "/img/mahesh.jpg", alt: "Mahesh Auti" },
   },
   doors: [
@@ -42,27 +42,27 @@ export const site = Object.freeze({
   foundations: [
     {
       code: "01",
-      lens: "BOTTLENECK",
-      title: "Evaluation Over Prompting",
-      body: "Generation is cheap. Proving that an agent's code or output is correct is the true engineering bottleneck. I architect deterministic evaluation loops.",
+      lens: "AI",
+      title: "AI-First Thinking",
+      body: "I don't bolt a model onto a finished app. I start by asking what an agent should run, what a human should decide, and how we'll know it worked.",
     },
     {
       code: "02",
-      lens: "PRIVACY",
-      title: "Zero-Telemetry Sovereignty",
-      body: "Why send private window state or agent transcripts across the network? VortexFlow and Limbo run 100% on-device. No accounts, no leaks.",
+      lens: "USER",
+      title: "User Perspective",
+      body: "I start from the person who has to use it. If the click, the wait, or the error doesn't make sense to them, the rest of the stack doesn't matter.",
     },
     {
       code: "03",
-      lens: "ARCHITECTURE",
-      title: "Boundary Discipline",
-      body: "Guards live at system boundaries. Internal models stay pure. Multi-agent concurrency fails unless domain ownership is strictly isolated.",
+      lens: "HANDS",
+      title: "Still in the Code",
+      body: "A title doesn't move me off the keyboard. I lead by writing the system — agents, full-stack, the path that actually has to work.",
     },
     {
       code: "04",
-      lens: "PERSPECTIVE",
-      title: "Astrophysics & Meditation",
-      body: "Cosmic scale and deep stillness sit right beside the keyboard. Judgment doesn't compress. Solitude accretes architectural taste.",
+      lens: "FINISH",
+      title: "Own It Through Launch",
+      body: "I stay on the problem until someone can use it. Sketch to shipped. No throwing the hard parts over a wall.",
     },
   ],
   roles: [

@@ -429,8 +429,8 @@ export function renderHome(site) {
     </section>
     <section id="foundations" data-section>
       <div class="sec-head">
-        <h2 class="sec-title">${CLOCK} Foundations &amp; Mental Models</h2>
-        <p class="sec-tag">How I think and architect</p>
+        <h2 class="sec-title">${CLOCK} Working Principles</h2>
+        <p class="sec-tag">How I operate</p>
       </div>
       <div class="mind-grid">${site.foundations.map(foundationCard).join("")}</div>
     </section>
