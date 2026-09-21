@@ -59,11 +59,24 @@ function istClock(date = new Date()) {
   return `${time} IST`;
 }
 
+function iosClock(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+  const hour = parts.find((p) => p.type === "hour")?.value || "9";
+  const minute = parts.find((p) => p.type === "minute")?.value || "41";
+  return `${hour}:${minute}`;
+}
+
 function bindClock() {
-  const el = document.querySelector("[data-ist-clock]");
-  if (!el) return;
+  const istEl = document.querySelector("[data-ist-clock]");
+  const iosEl = document.querySelector("[data-ios-clock]");
   const tick = () => {
-    el.textContent = istClock();
+    if (istEl) istEl.textContent = istClock();
+    if (iosEl) iosEl.textContent = iosClock();
   };
   tick();
   setInterval(tick, 1000);

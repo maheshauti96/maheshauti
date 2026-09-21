@@ -69,6 +69,9 @@ const THEME_BOOT = `(function(){var t="dark";try{var s=localStorage.getItem("ma-
 const SUN = `<svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.2 6.2l1.4 1.4M16.4 16.4l1.4 1.4M6.2 17.8l1.4-1.4M16.4 7.6l1.4-1.4"/></svg>`;
 const MOON = `<svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.3A8.4 8.4 0 1 1 9.7 3 7 7 0 0 0 21 14.3z"/></svg>`;
 const BATTERY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><rect x="4.2" y="9.2" width="13.6" height="5.6" fill="currentColor" stroke="none"/><path d="M22 10v4"/></svg>`;
+const IOS_SIGNAL = `<svg class="ios-signal" viewBox="0 0 17 12" width="16" height="11" fill="currentColor" aria-hidden="true"><rect x="0.5" y="8.5" width="2.8" height="3.5" rx="0.8"/><rect x="4.8" y="6" width="2.8" height="6" rx="0.8"/><rect x="9.1" y="3.2" width="2.8" height="8.8" rx="0.8"/><rect x="13.4" y="0.5" width="2.8" height="11.5" rx="0.8"/></svg>`;
+const IOS_WIFI = `<svg class="ios-wifi" viewBox="0 0 16 12" width="15" height="11" fill="currentColor" aria-hidden="true"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm-3.8-3a5.5 5.5 0 0 1 7.6 0 .8.8 0 0 1-.2 1.2.8.8 0 0 1-1.1-.1 3.9 3.9 0 0 0-5 0 .8.8 0 0 1-1.1.1.8.8 0 0 1-.2-1.2Zm-3.4-3.5a10.3 10.3 0 0 1 14.4 0 .8.8 0 0 1-.2 1.2.8.8 0 0 1-1.1-.1 8.7 8.7 0 0 0-11.8 0 .8.8 0 0 1-1.1.1.8.8 0 0 1-.2-1.2Z"/></svg>`;
+const IOS_BATTERY = `<svg class="ios-battery" viewBox="0 0 25 12" width="22" height="11" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor"/><rect x="2.5" y="2.5" width="16" height="7" rx="1.8" fill="currentColor" stroke="none"/><path d="M23 4v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
 
 const SOCIAL_ICONS = {
   x: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/></svg>`,
@@ -338,11 +341,21 @@ function menubar(site, { nav }) {
       <span class="apple" aria-hidden="true"></span>
       <a class="mark" href="/">${esc(site.person.name)}</a>
       ${links}
+      <time class="ios-time" data-ios-clock>9:41</time>
+    </div>
+    <div class="ios-notch" aria-hidden="true">
+      <span class="ios-camera"></span>
+      <span class="ios-sensor"></span>
     </div>
     <div class="menubar-end">
       ${live}
       <span class="battery" title="Battery">${BATTERY}<span>100%</span></span>
       <time class="clock" data-ist-clock>IST</time>
+      <div class="ios-status-right">
+        ${IOS_SIGNAL}
+        ${IOS_WIFI}
+        ${IOS_BATTERY}
+      </div>
       <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle color theme">${MOON}${SUN}</button>
     </div>
   </header>`;
