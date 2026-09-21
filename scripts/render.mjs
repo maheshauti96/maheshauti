@@ -127,7 +127,7 @@ function vortexSpiralDemo() {
         <span class="hot">Archimedean radial layout</span>
       </div>
       <div class="spiral-stage">
-        <vortex-spiral appearance="dark" instant static nohint></vortex-spiral>
+        <vortex-spiral glass appearance="dark" instant static nohint></vortex-spiral>
       </div>
       <p class="play-status">Windows fan out from your pointer in an Archimedean radial spiral. Hover or tap wedges to inspect window focus in the central hub.</p>
     </div>`;
@@ -307,10 +307,12 @@ function head(site, { title, description, robots }) {
   <title>${esc(title)}</title>
 ${desc}${robotsTag}  <link rel="canonical" href="${esc(site.origin)}/">
 ${social}  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <meta name="theme-color" content="#090a0f">
+  <meta name="theme-color" content="#05060c">
   <meta name="color-scheme" content="dark light">
   <script>${THEME_BOOT}</script>
   <style>${css}</style>
+  <script src="/js/vortex-glass.js" defer></script>
+  <script src="/js/vortex-spiral.js" defer></script>
 ${schema}</head>`;
 }
 
@@ -442,7 +444,6 @@ export function renderHome(site) {
     <p>${esc(site.person.location)}. ${esc(site.person.aside)}</p>
     <p><a href="${esc(site.origin)}/">${esc(site.origin.replace("https://", ""))}</a></p>
   </footer>
-  <script src="/js/vortex-spiral.js" defer></script>
   <script src="/js/theme.js" defer></script>
 </body>
 </html>

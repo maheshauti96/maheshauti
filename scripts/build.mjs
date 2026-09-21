@@ -105,6 +105,7 @@ write(join(docs, "robots.txt"), robots);
 write(join(docs, "sitemap.xml"), sitemap);
 write(join(docs, "favicon.svg"), favicon);
 copyFileSync(join(root, "src/theme.js"), join(docs, "js/theme.js"));
+copyFileSync(join(root, "src/vortex-glass.js"), join(docs, "js/vortex-glass.js"));
 copyFileSync(join(root, "src/vortex-spiral.js"), join(docs, "js/vortex-spiral.js"));
 copyFileSync(join(root, "src/theme.css"), join(docs, "css/site.css"));
 copyFileSync(join(root, "img/mahesh.jpg"), join(docs, "img/mahesh.jpg"));

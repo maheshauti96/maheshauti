@@ -28,6 +28,8 @@ function motion() {
 function apply(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   document.querySelectorAll("vortex-spiral").forEach((el) => {
+    el.setAttribute("appearance", theme);
+    el.setAttribute("glass", "");
     if (typeof el.setAppearance === "function") el.setAppearance(theme);
   });
 }
