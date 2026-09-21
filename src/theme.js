@@ -39,9 +39,9 @@ function current() {
 }
 
 function bindTheme() {
-  const button = document.querySelector("[data-theme-toggle]");
-  if (!button) return;
-  button.addEventListener("click", () => {
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-theme-toggle]");
+    if (!button) return;
     const next = current() === "dark" ? "light" : "dark";
     apply(next);
     localStorage.setItem(KEY, next);

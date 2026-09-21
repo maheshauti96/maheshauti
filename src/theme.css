@@ -244,10 +244,13 @@ html[data-theme="light"] .menubar {
   flex: none;
 }
 
-.ios-time,
-.ios-notch,
-.ios-status-right {
-  display: none;
+@media (min-width: 601px) {
+  .ios-time,
+  .ios-notch,
+  .ios-status-right,
+  .theme-toggle-mobile {
+    display: none !important;
+  }
 }
 
 .apple {
@@ -1256,8 +1259,10 @@ html[data-theme="light"] .inbound:hover {
   }
 
   .menubar-start {
-    gap: 0;
-    min-width: 50px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
   }
 
   .apple,
@@ -1265,7 +1270,8 @@ html[data-theme="light"] .inbound:hover {
   .menubar-nav,
   .limbo-pill,
   .battery,
-  .clock {
+  .clock,
+  .theme-toggle-desktop {
     display: none !important;
   }
 
@@ -1278,6 +1284,15 @@ html[data-theme="light"] .inbound:hover {
     color: var(--ink);
     line-height: 1;
     user-select: none;
+  }
+
+  .theme-toggle-mobile {
+    display: inline-flex !important;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    border-radius: 6px;
+    margin: 0;
   }
 
   .ios-notch {
@@ -1341,14 +1356,6 @@ html[data-theme="light"] .inbound:hover {
     display: block;
     color: var(--ink);
     flex: none;
-  }
-
-  .theme-toggle {
-    width: 24px;
-    height: 24px;
-    padding: 3px;
-    border-radius: 6px;
-    margin-left: 2px;
   }
 
   .sec-head {
@@ -1428,6 +1435,15 @@ html[data-theme="light"] .inbound:hover {
 
   .menubar {
     padding: 0 10px;
+  }
+
+  .menubar-start {
+    gap: 6px;
+  }
+
+  .theme-toggle-mobile {
+    width: 20px;
+    height: 20px;
   }
 
   .ios-notch {

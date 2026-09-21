@@ -342,6 +342,7 @@ function menubar(site, { nav }) {
       <a class="mark" href="/">${esc(site.person.name)}</a>
       ${links}
       <time class="ios-time" data-ios-clock>9:41</time>
+      <button class="theme-toggle theme-toggle-mobile" type="button" data-theme-toggle aria-label="Toggle color theme">${MOON}${SUN}</button>
     </div>
     <div class="ios-notch" aria-hidden="true">
       <span class="ios-camera"></span>
@@ -356,7 +357,7 @@ function menubar(site, { nav }) {
         ${IOS_WIFI}
         ${IOS_BATTERY}
       </div>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle color theme">${MOON}${SUN}</button>
+      <button class="theme-toggle theme-toggle-desktop" type="button" data-theme-toggle aria-label="Toggle color theme">${MOON}${SUN}</button>
     </div>
   </header>`;
 }
