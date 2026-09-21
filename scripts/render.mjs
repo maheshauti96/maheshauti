@@ -120,28 +120,16 @@ function hostLabel(url) {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-function switcherPlay() {
-  const tiles = [
-    { name: "Terminal", focus: "Terminal [Zsh · Go 1.23]", on: true },
-    { name: "Xcode", focus: "Xcode [Limbo.app · Swift 6]", on: false },
-    { name: "Editor", focus: "VS Code [maheshauti.com]", on: false },
-    { name: "Browser", focus: "Chrome [Quattr AI Search]", on: false },
-  ];
-  const buttons = tiles
-    .map(
-      (tile) => `<button type="button" class="play-tile${tile.on ? " is-on" : ""}" data-focus="${esc(tile.focus)}">
-        <strong>${esc(tile.name)}</strong>
-        <span data-tile-state>${tile.on ? "active" : "ready"}</span>
-      </button>`,
-    )
-    .join("");
-  return `<div class="play" data-switcher>
+function vortexSpiralDemo() {
+  return `<div class="play vortex-play" data-vortex-play>
       <div class="play-head">
-        <span>Test switcher feel</span>
-        <span class="hot">Latency under 8ms</span>
+        <span>VortexFlow Spiral Overlay</span>
+        <span class="hot">Archimedean radial layout</span>
       </div>
-      <div class="play-grid">${buttons}</div>
-      <p class="play-status" data-switcher-status>Active Focus: Terminal [Zsh · Go 1.23] · Instant window focus verified</p>
+      <div class="spiral-stage">
+        <vortex-spiral appearance="dark" instant static nohint></vortex-spiral>
+      </div>
+      <p class="play-status">Windows fan out from your pointer in an Archimedean radial spiral. Hover or tap wedges to inspect window focus in the central hub.</p>
     </div>`;
 }
 
@@ -212,7 +200,7 @@ function productCard(product) {
       : `<span class="badge">macOS window switcher · MIT</span>`;
   const demo =
     product.name === "VortexFlow"
-      ? switcherPlay()
+      ? vortexSpiralDemo()
       : product.name === "Limbo"
         ? sessionStream()
         : "";
@@ -454,7 +442,8 @@ export function renderHome(site) {
     <p>${esc(site.person.location)}. ${esc(site.person.aside)}</p>
     <p><a href="${esc(site.origin)}/">${esc(site.origin.replace("https://", ""))}</a></p>
   </footer>
-  <script src="/js/theme.js"></script>
+  <script src="/js/vortex-spiral.js" defer></script>
+  <script src="/js/theme.js" defer></script>
 </body>
 </html>
 `;

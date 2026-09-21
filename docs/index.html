@@ -752,13 +752,6 @@ html[data-theme="light"] .card-mark-wrap.ink .card-mark {
   color: var(--ok);
 }
 
-.play-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.play-tile,
 .stream-row {
   appearance: none;
   font: inherit;
@@ -767,52 +760,29 @@ html[data-theme="light"] .card-mark-wrap.ink .card-mark {
   cursor: pointer;
 }
 
-.play-tile {
-  background: #141824;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 4px;
-  text-align: center;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-
-html[data-theme="light"] .play-tile {
-  background: #e8eef6;
-  border-color: var(--hair);
-}
-
-.play-tile:hover,
-.play-tile.is-on {
-  background: #1e2638;
-  border-color: var(--accent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-html[data-theme="light"] .play-tile:hover,
-html[data-theme="light"] .play-tile.is-on {
-  background: #dbe7f3;
-}
-
-.play-tile strong {
-  display: block;
-  font-size: 11px;
-  color: var(--ink);
-}
-
-.play-tile span {
-  display: block;
-  font-size: 9px;
-  font-family: var(--mono);
-  color: var(--ink-3);
-  margin-top: 2px;
-}
-
 .play-status,
 .stream-log {
   margin-top: 10px;
   font-family: var(--mono);
   font-size: 11px;
   color: var(--accent);
+}
+
+.spiral-stage {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1 / 1;
+  margin: 4px auto 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+vortex-spiral {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .stream-row {
@@ -1152,10 +1122,6 @@ html[data-theme="light"] .inbound {
     grid-template-columns: 1fr 1fr;
   }
 
-  .play-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .dock {
     border-radius: 16px;
     justify-content: flex-start;
@@ -1263,25 +1229,15 @@ html[data-theme="light"] .inbound {
           </div>
         </div>
         <p class="card-desc">A free open-source macOS window switcher. Mouse button or shortcut. MIT. No account, no telemetry.</p>
-        <div class="play" data-switcher>
+        <div class="play vortex-play" data-vortex-play>
       <div class="play-head">
-        <span>Test switcher feel</span>
-        <span class="hot">Latency under 8ms</span>
+        <span>VortexFlow Spiral Overlay</span>
+        <span class="hot">Archimedean radial layout</span>
       </div>
-      <div class="play-grid"><button type="button" class="play-tile is-on" data-focus="Terminal [Zsh · Go 1.23]">
-        <strong>Terminal</strong>
-        <span data-tile-state>active</span>
-      </button><button type="button" class="play-tile" data-focus="Xcode [Limbo.app · Swift 6]">
-        <strong>Xcode</strong>
-        <span data-tile-state>ready</span>
-      </button><button type="button" class="play-tile" data-focus="VS Code [maheshauti.com]">
-        <strong>Editor</strong>
-        <span data-tile-state>ready</span>
-      </button><button type="button" class="play-tile" data-focus="Chrome [Quattr AI Search]">
-        <strong>Browser</strong>
-        <span data-tile-state>ready</span>
-      </button></div>
-      <p class="play-status" data-switcher-status>Active Focus: Terminal [Zsh · Go 1.23] · Instant window focus verified</p>
+      <div class="spiral-stage">
+        <vortex-spiral appearance="dark" instant static nohint></vortex-spiral>
+      </div>
+      <p class="play-status">Windows fan out from your pointer in an Archimedean radial spiral. Hover or tap wedges to inspect window focus in the central hub.</p>
     </div>
       </div>
       <div class="card-links"><a href="https://vortexflow.io/" rel="noopener">vortexflow.io ↗</a><a class="quiet" href="https://github.com/maheshauti96/VortexFlow" rel="noopener">Source ↗</a></div>
@@ -1456,6 +1412,7 @@ html[data-theme="light"] .inbound {
     <p>India. Philosophy, astrophysics, meditation, classical music.</p>
     <p><a href="https://maheshauti.com/">maheshauti.com</a></p>
   </footer>
-  <script src="/js/theme.js"></script>
+  <script src="/js/vortex-spiral.js" defer></script>
+  <script src="/js/theme.js" defer></script>
 </body>
 </html>

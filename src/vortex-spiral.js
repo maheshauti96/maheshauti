@@ -1,0 +1,1312 @@
+/*!
+ * <vortex-spiral>. VortexFlow overlay, as a drop-in web component.
+ *
+ * Geometry is RadialLayout.spiral from the app:
+ *   8 seats / turn, 45° sweep, 0.05 rad gap, start at the top.
+ *   Radius steps per seat, not per turn, and not a petal coil.
+ *   Annular sectors with quadratic corner fillets (WedgeShape).
+ *   Upright content box; hub carries the window title.
+ *
+ * Usage:
+ *   <script src="/js/vortex-spiral.js" defer></script>
+ *   <vortex-spiral></vortex-spiral>
+ *
+ * items: recency order, item 0 nearest the hub
+ * speed: idle orbit °/s (default 2.4; 0 or `static` = off)
+ * scene: `tab-search` | `web-search` (typed query + action cards)
+ */
+(function () {
+  'use strict';
+
+  const D2R = Math.PI / 180;
+  const R2D = 180 / Math.PI;
+  const f3 = (n) => +n.toFixed(3);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+  }[c]));
+  const fav = (d, sz) =>
+    `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=${sz || 64}`;
+  const pt = (r, a) => [r * Math.cos(a), r * Math.sin(a)];
+
+  // ── RadialLayout (spiral winding), scale 1 ──────────────────────────
+  const SEATS_PER_TURN = 8;
+  const SWEEP = (2 * Math.PI) / SEATS_PER_TURN;
+  const WEDGE_GAP = 0.05;
+  const START_ANGLE = -Math.PI / 2;
+  const HUB_RADIUS = 96;
+  const HUB_GAP = 8;
+  const FIRST_RING = HUB_RADIUS + HUB_GAP;
+  const RING_THICKNESS = 120;
+  const TURN_GAP = 16;
+  const RADIAL_STEP = (RING_THICKNESS + TURN_GAP) / SEATS_PER_TURN;
+  const CORNER = 13;
+  const PADDING = 12;
+  const CONTENT_MARGIN = 4;
+  const PREFERRED_H = 76;
+  const TITLE_PX = 15;
+  const ARTWORK = 56;
+  const RING_INSET = 7;
+  const MINT = '#7ee8d0';
+  const SEL_FILL = '#c5e8df';
+  const GLASS = window.VortexGlass;
+
+  function contentSize() {
+    const innerMid = FIRST_RING + RING_THICKNESS / 2;
+    const ray = innerMid * Math.sin((SWEEP - WEDGE_GAP) / 2);
+    const cr = Math.max(1, Math.min(RING_THICKNESS / 2, ray) - CONTENT_MARGIN);
+    const diag = cr * 2;
+    const height = Math.min(PREFERRED_H, diag * 0.72);
+    const width = Math.sqrt(Math.max(1, diag * diag - height * height));
+    return { width, height };
+  }
+
+  function seatOf(offset, winding = 'spiral') {
+    const slot = offset % SEATS_PER_TURN;
+    const start = START_ANGLE + slot * SWEEP + WEDGE_GAP / 2;
+    const end = START_ANGLE + (slot + 1) * SWEEP - WEDGE_GAP / 2;
+    const inner = winding === 'circular'
+      ? FIRST_RING + Math.floor(offset / SEATS_PER_TURN) * (RING_THICKNESS + TURN_GAP)
+      : FIRST_RING + offset * RADIAL_STEP;
+    const outer = inner + RING_THICKNESS;
+    const midA = (start + end) / 2;
+    const midR = (inner + outer) / 2;
+    const box = contentSize();
+    const [cx, cy] = pt(midR, midA);
+    return {
+      offset, start, end, inner, outer, midA, midR, cx, cy,
+      cw: box.width, ch: box.height
+    };
+  }
+
+  // WedgeShape: annular sector, quadratic fillets through the true corner.
+  function wedgePath(ri, ro, a1, a2, corner) {
+    const thickness = ro - ri;
+    const innerArc = ri * (a2 - a1);
+    const c = Math.max(0, Math.min(corner, thickness / 2, innerArc / 2));
+    const p = (r, a) => {
+      const [x, y] = pt(r, a);
+      return `${f3(x)} ${f3(y)}`;
+    };
+    if (c < 0.4) {
+      return `M${p(ri, a1)}A${f3(ri)} ${f3(ri)} 0 0 1 ${p(ri, a2)}L${p(ro, a2)}A${f3(ro)} ${f3(ro)} 0 0 0 ${p(ro, a1)}Z`;
+    }
+    const iIn = c / ri, oIn = c / ro;
+    const i0 = a1 + iIn, i1 = a2 - iIn;
+    const o0 = a1 + oIn, o1 = a2 - oIn;
+    return [
+      `M${p(ri + c, a1)}`,
+      `Q${p(ri, a1)} ${p(ri, i0)}`,
+      `A${f3(ri)} ${f3(ri)} 0 0 1 ${p(ri, i1)}`,
+      `Q${p(ri, a2)} ${p(ri + c, a2)}`,
+      `L${p(ro - c, a2)}`,
+      `Q${p(ro, a2)} ${p(ro, o1)}`,
+      `A${f3(ro)} ${f3(ro)} 0 0 0 ${p(ro, o0)}`,
+      `Q${p(ro, a1)} ${p(ro - c, a1)}`,
+      'Z'
+    ].join('');
+  }
+
+  function arcPath(r, a1, a2, corner, sweepFlag) {
+    const innerArc = r * Math.abs(a2 - a1);
+    const c = Math.max(0, Math.min(corner, innerArc / 2));
+    const inset = c / r;
+    const s = a1 + (a2 > a1 ? inset : -inset);
+    const e = a2 - (a2 > a1 ? inset : -inset);
+    const [x1, y1] = pt(r, s);
+    const [x2, y2] = pt(r, e);
+    return `M${f3(x1)} ${f3(y1)}A${f3(r)} ${f3(r)} 0 0 ${sweepFlag} ${f3(x2)} ${f3(y2)}`;
+  }
+
+  function wrapLabel(text, maxWidth, font) {
+    if (text.startsWith('Prompt on ')) return ['Prompt on', text.slice(10)];
+    if (text === 'Open first result') return ['Open first', 'result'];
+    if (text === 'Search the web') return ['Search the', 'web'];
+    const maxChars = Math.max(5, Math.floor(maxWidth / (font * 0.56)));
+    if (text.length <= maxChars) return [text];
+    if (!text.includes(' ') && text.length <= maxChars + 2) return [text];
+    const cut = text.lastIndexOf(' ', maxChars);
+    const head = (cut > 3 ? text.slice(0, cut) : text.slice(0, maxChars)).trim();
+    let tail = (cut > 3 ? text.slice(cut) : text.slice(maxChars)).trim();
+    if (tail.length > maxChars) tail = tail.slice(0, Math.max(3, maxChars - 1)).trimEnd() + '…';
+    return [head, tail];
+  }
+
+  // Recency order: item 0 hugs the hub. Popular Mac apps and sites, not a personal desk.
+  const DEFAULT_ITEMS = [
+    { domain: 'github.com', label: 'PR #2140', meta: 'github.com · 2 of 4', title: 'feat: session store · Pull Request #2140', sub: 'Another desktop · 2m', fill: '#d6eaf4', badge: 'chrome' },
+    { src: '/img/logos/slack.png', label: 'Slack', meta: 'slack.com', title: '#eng-oncall · 6 new', sub: 'Desktop', fill: '#d4e4f8' },
+    { src: '/img/logos/cursor.png', label: 'Cursor', meta: 'Cursor', title: 'app.ts, agents', sub: 'Desktop', fill: '#ececee' },
+    { domain: 'figma.com', label: 'Figma', meta: 'figma.com', title: 'Q3 launch, design file', sub: 'Desktop', fill: '#d9e4f8' },
+    { icon: 'finder', label: 'Finder', meta: 'Finder', title: 'Downloads', sub: 'Desktop', fill: '#d4f3ee' },
+    { src: '/img/logos/claude.png', label: 'Claude', meta: 'claude.ai', title: 'Claude', sub: 'Desktop', fill: '#f6d8cc' },
+    { src: '/img/logos/chatgpt.png', label: 'ChatGPT', meta: 'chatgpt.com', title: 'ChatGPT', sub: 'Desktop', fill: '#ececea' },
+    { src: '/img/logos/notes.png', label: 'Notes', meta: 'Notes', title: 'shipping checklist', sub: 'Desktop', fill: '#f6f0c8' },
+    { src: '/img/logos/arc.svg', label: 'Arc', meta: 'developer.apple.com', title: 'Human Interface Guidelines', sub: 'Desktop', fill: '#e4e0f6' },
+    { domain: 'notion.so', label: 'Notion', meta: 'notion.so', title: 'Weekly planning', sub: 'Desktop', fill: '#eeeee8' },
+    { domain: 'warp.dev', label: 'Warp', meta: 'Warp', title: 'zsh, deploy us-east-1', sub: 'Desktop', fill: '#c8e6f0' },
+    { icon: 'preview', label: 'Preview', meta: 'Preview', title: 'Screenshot 2026-08-28', sub: 'Desktop', fill: '#d0eef2' },
+    { domain: 'linear.app', label: 'Linear', meta: 'linear.app', title: 'ENG-1842 · search latency', sub: 'Desktop', fill: '#e4dcf6' },
+    { src: '/img/logos/music.png', label: 'Music', meta: 'Music', title: 'Discover Weekly', sub: 'Desktop', fill: '#f5dce4' },
+    { domain: 'zoom.us', label: 'Zoom', meta: 'zoom.us', title: 'Standup', sub: 'Desktop', fill: '#d4e8f8' },
+    { domain: 'spotify.com', label: 'Spotify', meta: 'spotify.com', title: 'Focus mix', sub: 'Desktop', fill: '#d4f0dc' }
+  ];
+
+  const BADGE_SRC = {
+    chrome: '/img/logos/chrome.png',
+    brave: '/img/logos/brave.png'
+  };
+
+  const ACTION = { fill: '#f4f3f1', sel: '#ececea' };
+  const SCENES = {
+    'desk': {
+      speed: 0,
+      noHint: true,
+      select: 1,
+      items: DEFAULT_ITEMS
+    },
+    'tab-search': {
+      query: 'youtube',
+      select: 0,
+      speed: 0,
+      noHint: true,
+      spin: 20,
+      items: [
+        { domain: 'youtube.com', label: 'YouTube', meta: 'youtube.com', title: 'Fireship, JavaScript in 100 Seconds', fill: '#f3c4d0', sel: '#f3c4d0', glow: '#f4a3b8', badge: 'chrome' },
+        { icon: 'search', label: 'Search the web', meta: 'Search the web', title: 'youtube', fill: ACTION.fill, sel: '#c5e4f8' },
+        { icon: 'open', label: 'Open first result', meta: 'Open first result', title: 'youtube', fill: ACTION.fill, sel: '#c5e4f8' },
+        { src: '/img/logos/chatgpt.png', label: 'Prompt on ChatGPT', meta: 'Prompt on ChatGPT', title: 'youtube', fill: ACTION.fill },
+        { src: '/img/logos/claude.png', label: 'Prompt on Claude', meta: 'Prompt on Claude', title: 'youtube', fill: ACTION.fill },
+        { icon: 'grok', label: 'Prompt on Grok', meta: 'Prompt on Grok', title: 'youtube', fill: ACTION.fill }
+      ]
+    },
+    'web-search': {
+      query: 'how to code in java',
+      select: 0,
+      speed: 0,
+      noHint: true,
+      spin: 18,
+      items: [
+        { icon: 'search', label: 'Search the web', meta: 'Search the web', title: 'how to code in java', fill: '#d7eef8', sel: '#c5e4f8', glow: '#8ec8e4' },
+        { icon: 'open', label: 'Open first result', meta: 'Open first result', title: 'how to code in java', fill: ACTION.fill, sel: '#c5e4f8' },
+        { src: '/img/logos/chatgpt.png', label: 'Prompt on ChatGPT', meta: 'Prompt on ChatGPT', title: 'how to code in java', fill: ACTION.fill },
+        { src: '/img/logos/claude.png', label: 'Prompt on Claude', meta: 'Prompt on Claude', title: 'how to code in java', fill: ACTION.fill },
+        { icon: 'grok', label: 'Prompt on Grok', meta: 'Prompt on Grok', title: 'how to code in java', fill: ACTION.fill }
+      ]
+    },
+    'card-menu': {
+      select: 0,
+      speed: 0,
+      noHint: true,
+      spin: 52,
+      items: [
+        { domain: 'github.com', label: 'PR #2140', meta: 'github.com · 2 of 4', title: 'feat: session store · Pull Request #2140', sub: 'Another desktop · 2m', fill: '#c5e8df', sel: '#c5e8df', glow: '#7ee8d0', badge: 'chrome' },
+        { src: '/img/logos/slack.png', label: 'Slack', meta: 'slack.com', title: '#eng-oncall · 6 new', sub: 'Desktop', fill: '#d4e4f8' },
+        { src: '/img/logos/cursor.png', label: 'Cursor', meta: 'Cursor', title: 'app.ts, agents', sub: 'Desktop', fill: '#ececee' },
+        { domain: 'figma.com', label: 'Figma', meta: 'figma.com', title: 'Q3 launch', sub: 'Desktop', fill: '#d9e4f8' },
+        { icon: 'finder', label: 'Finder', meta: 'Finder', title: 'Downloads', sub: 'Desktop', fill: '#d4f3ee' },
+        { icon: 'comet', label: 'Comet', meta: 'Comet', title: 'Comet', sub: 'Desktop', fill: '#e4eaf8' },
+        { src: '/img/logos/notes.png', label: 'Notes', meta: 'Notes', title: 'shipping checklist', sub: 'Desktop', fill: '#f6f0c8' },
+        { domain: 'linear.app', label: 'Linear', meta: 'linear.app', title: 'ENG-1842', sub: 'Desktop', fill: '#e4dcf6' }
+      ]
+    }
+  };
+
+  const SYMBOL_ICONS = new Set(['finder', 'preview', 'comet', 'hermes', 'search', 'open', 'grok']);
+
+  class VortexSpiral extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this._angle = 0;
+      this._vel = 0;
+      this._active = -1;
+      this._raf = null;
+      this._last = 0;
+      this._entranceT = null;
+      this._typeTimer = 0;
+      this._hold = false;
+      this._glow = MINT;
+      this._reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    connectedCallback() {
+      this._observeGlass();
+      if (this.hasAttribute('managed')) { this.setAttribute('tabindex', '0'); return; }
+      const scene = SCENES[this.getAttribute('scene')] || null;
+      let items = scene ? scene.items : DEFAULT_ITEMS;
+      try {
+        if (this.getAttribute('items')) items = JSON.parse(this.getAttribute('items'));
+      } catch (e) { /* keep defaults */ }
+      this._items = items;
+      this._query = this.getAttribute('query') || (scene && scene.query) || '';
+      this._noHint = this.hasAttribute('nohint') || !!(scene && scene.noHint);
+      if (this.hasAttribute('static')) this._speed = 0;
+      else if (this.getAttribute('speed') != null) this._speed = parseFloat(this.getAttribute('speed'));
+      else if (scene && scene.speed != null) this._speed = scene.speed;
+      else this._speed = 2.4;
+      this._angle = (scene && scene.spin) || 0;
+      const selectAttr = this.getAttribute('select');
+      this._prefer = selectAttr != null
+        ? +selectAttr
+        : (scene && scene.select != null ? scene.select : Math.min(1, Math.max(0, items.length > 1 ? 1 : 0)));
+      if (this._query) this.setAttribute('search', '');
+      if (this._speed === 0) this.setAttribute('still', '');
+      this._build();
+      this._setActive(Math.min(this._prefer, items.length - 1), false);
+      if (this.hasAttribute('instant')) {
+        this._hold = false;
+        this._entranceT = 1;
+        this._applyEntrance(1);
+        if (this._qtext) this._qtext.textContent = this._query;
+        return;
+      }
+      if (this.hasAttribute('demo')) {
+        this._speed = 0;
+        this._noHint = true;
+        this._applyEntrance(0);
+        this.style.opacity = '0';
+        this.style.pointerEvents = 'none';
+        return;
+      }
+      this._io = new IntersectionObserver((es) => {
+        this._visible = es.some((e) => e.isIntersecting);
+        cancelAnimationFrame(this._raf);
+        if (this._visible) {
+          if (!this._entered) { this._entered = true; this._enter(); }
+          else { this._last = performance.now(); this._raf = requestAnimationFrame(this._tick); }
+        }
+      }, { threshold: 0.08, rootMargin: '0px 0px 18% 0px' });
+      this._io.observe(this);
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this._raf);
+      clearTimeout(this._typeTimer);
+      if (this._io) this._io.disconnect();
+      cancelAnimationFrame(this._glassRAF);
+      this._glassObserver?.disconnect();
+      this._glassObserver = null;
+      document.removeEventListener('visibilitychange', this._glassVisibility);
+    }
+
+    setAppearance(appearance) {
+      this.setAttribute('appearance', appearance === 'dark' ? 'dark' : 'light');
+    }
+
+    setAmbientPaused(paused) {
+      this._ambientPaused = Boolean(paused);
+      this._syncGlassMotion();
+    }
+
+    _observeGlass() {
+      if (!this.hasAttribute('glass') || !GLASS || this._glassObserver) return;
+      this._glassVisible = false;
+      this._glassVisibility = () => this._syncGlassMotion();
+      document.addEventListener('visibilitychange', this._glassVisibility);
+      this._glassObserver = new IntersectionObserver((entries) => {
+        this._glassVisible = entries.some((entry) => entry.isIntersecting);
+        this._syncGlassMotion();
+      }, { threshold: .01 });
+      this._glassObserver.observe(this);
+    }
+
+    _syncGlassMotion() {
+      if (!this.hasAttribute('glass') || !GLASS) return;
+      cancelAnimationFrame(this._glassRAF);
+      this._glassRAF = null;
+      const running = Boolean(this._liquidPath) && GLASS.shouldAnimate({ connected: this.isConnected,
+        visible: this._glassVisible, hidden: document.hidden, reduced: this._reduced, paused: this._ambientPaused });
+      this.dataset.glassMotion = running ? 'running' : this._reduced ? 'reduced' : 'paused';
+      if (!running) { this._drawGlass(GLASS.resting); return; }
+      this._glassLast = 0;
+      const frame = (now) => {
+        if (now - this._glassLast >= GLASS.frameInterval) {
+          this._glassLast = now;
+          this._drawGlass(GLASS.sample(now / 1000));
+        }
+        this._glassRAF = requestAnimationFrame(frame);
+      };
+      this._glassRAF = requestAnimationFrame(frame);
+    }
+
+    _drawGlass(motion) {
+      if (!this._liquidPath) return;
+      this._liquidPath.setAttribute('d', GLASS.contour(HUB_RADIUS - RING_INSET, motion));
+      this.style.setProperty('--glass-energy', motion.energy.toFixed(3));
+      this._liquidSheen?.setAttribute('stroke-dashoffset', String(-motion.phase / (Math.PI * 2) * 100));
+    }
+
+    _setGlassGlow(color) {
+      if (!this.hasAttribute('glass')) return;
+      this.style.setProperty('--glass-glow', color);
+    }
+
+    // The scene controller owns timing. The renderer never navigates or sends a query.
+    setExample(items, { selected = 1, winding = 'spiral', pins = [], query = '',
+      search = false, showPlus = false, animate = false } = {}) {
+      if (!Array.isArray(items) || !items.length) return;
+      const focusedInput = this.shadowRoot.activeElement === this._qinput;
+      const selection = focusedInput ? [this._qinput.selectionStart, this._qinput.selectionEnd] : null;
+      this.stopMotion();
+      const previous = animate && !this._reduced
+        ? this.shadowRoot.querySelector('.stage')?.cloneNode(true) : null;
+      this._items = items.slice(0, 24);
+      this._pins = winding === 'spiral' ? pins.slice(0, 3) : [];
+      this._pinActive = null;
+      this._pinGroups = [];
+      this._showPlus = showPlus && winding === 'spiral';
+      this._winding = winding;
+      this._query = query;
+      this._speed = 0;
+      this._angle = 0;
+      this._noHint = true;
+      this._prefer = Math.max(0, Math.min(selected, this._items.length - 1));
+      this._active = -1;
+      this._hold = false;
+      this._entranceT = 1;
+      this.toggleAttribute('search', search || Boolean(query));
+      this.setAttribute('still', '');
+      this._build();
+      this._hold = false;
+      this._entranceT = 1;
+      this._applyEntrance(1);
+      this._setActive(this._prefer, false);
+      this._addPins();
+      this.setQueryText(query, search || Boolean(query));
+      this.setAttribute('aria-label', 'VortexFlow ' + winding + '. Arrow keys select, Enter opens.' + (this.hasAttribute('searchable') ? ' Type to search.' : ''));
+      if (previous) {
+        previous.classList.add('scene-ghost');
+        previous.setAttribute('aria-hidden', 'true');
+        previous.inert = true;
+        this.shadowRoot.append(previous);
+        this._ghost = previous;
+        const current = this.shadowRoot.querySelector('.stage');
+        this._motion = [
+          previous.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' }),
+          current.animate([{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'scale(1)' }],
+            { duration: 440, easing: 'cubic-bezier(.2,.75,.2,1)' })
+        ];
+        this._motion[0].finished.then(() => previous.remove()).catch(() => {});
+      }
+      if (focusedInput && this._qinput) {
+        this._qinput.focus({ preventScroll: true });
+        this._qinput.setSelectionRange(Math.min(query.length, selection[0]), Math.min(query.length, selection[1]));
+      }
+    }
+
+    _itemLabel(item) {
+      return item.kind === 'web' || item.kind === 'assistant'
+        ? item.meta + ': ' + item.title : item.title || item.label;
+    }
+
+    updateExampleItems(items) {
+      if (items.length !== this._items.length) return;
+      this._items = items;
+      this._wedgeEls.forEach((wedge, index) => wedge.setAttribute('aria-label', this._itemLabel(items[index])));
+      const selected = this._active;
+      this._active = -1;
+      if (this._pinActive == null) this._setActive(Math.max(0, selected), false);
+    }
+
+    stopMotion() {
+      cancelAnimationFrame(this._raf);
+      clearTimeout(this._typeTimer);
+      (this._motion || []).forEach((animation) => animation.cancel());
+      this._motion = [];
+      this._ghost?.remove();
+      this._ghost = null;
+    }
+
+    setReducedMotion(reduced) {
+      this._reduced = Boolean(reduced);
+      this.toggleAttribute('reduce-motion', this._reduced);
+      if (this._reduced) this.stopMotion();
+      this._syncGlassMotion();
+    }
+
+    setQueryText(query, visible = true) {
+      this._query = query;
+      this.toggleAttribute('search', visible);
+      if (this._qinput) {
+        this._qinput.value = query;
+        this._qinput.style.width = Math.min(34, Math.max(4, query.length || 22)) + 'ch';
+      }
+      if (this._qtext) this._qtext.textContent = query;
+    }
+
+    focusSearch() {
+      this.setQueryText(this._query || '', true);
+      this._qinput?.focus({ preventScroll: true });
+    }
+
+    selectExample(index, announce = true) {
+      if (Number.isFinite(index)) this._setActive(Math.max(0, Math.min(index, this._items.length - 1)), announce);
+    }
+
+    targetPoint(index, pin = false) {
+      const target = pin ? this._pinGroups?.[index] : this._wedgeEls?.[index]?.querySelector('.ico-wrap');
+      if (!target) return null;
+      const rect = target.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    selectPin(index, announce = true) {
+      const pin = this._pins?.[index];
+      if (!pin) return;
+      this._pinActive = index;
+      this._wedgeEls.forEach((wedge) => { wedge.classList.remove('on'); wedge.setAttribute('aria-pressed', 'false'); });
+      this._pinGroups.forEach((group, i) => {
+        group.classList.toggle('on', i === index);
+        group.setAttribute('aria-pressed', String(i === index));
+      });
+      this._hubK.textContent = pin.kind || 'Pinned shortcut';
+      this._hubT.textContent = pin.title;
+      this._hubS.textContent = 'Click to open';
+      this._hubK.style.display = '';
+      this._hubS.style.display = '';
+      this.shadowRoot.querySelector('.hub-ring')?.setAttribute('stroke', '#eef5ef');
+      this._setGlassGlow('#d3f3e7');
+      if (this.hasAttribute('story') && !this.hasAttribute('glass')) this._hub.style.boxShadow = '0 0 28px 4px #f0fff03d, inset 0 0 18px #ffffff88';
+      if (this._coupling) this._coupling.setAttribute('d', '');
+      if (announce) {
+        this._sr.textContent = (pin.kind || 'Pinned shortcut') + ', ' + pin.title;
+        this.dispatchEvent(new CustomEvent('vortex-pin-select', { detail: pin, bubbles: true }));
+      }
+    }
+
+    activateSelection() {
+      if (this._pinActive != null) {
+        this.dispatchEvent(new CustomEvent('vortex-pin', { detail: this._pins[this._pinActive], bubbles: true }));
+      } else if (this._active >= 0) this._switch(this._active);
+    }
+
+    _intent(kind) {
+      this.dispatchEvent(new CustomEvent('vortex-interaction', { detail: { kind }, bubbles: true }));
+    }
+
+    _addPins() {
+      const ns = 'http://www.w3.org/2000/svg';
+      const make = (tag, attrs) => {
+        const el = document.createElementNS(ns, tag);
+        Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+        return el;
+      };
+      this._pinGroups = [];
+      (this._pins || []).forEach((pin, i) => {
+        const seat = seatOf(7 - i);
+        const outer = seat.inner - 8;
+        const [x, y] = pt((FIRST_RING + outer) / 2, seat.midA);
+        const group = make('g', { class: 'pin-seat', 'data-pin': i, role: 'button', tabindex: '0',
+          'aria-label': (pin.kind || 'Pinned shortcut') + ': ' + pin.title, 'aria-pressed': 'false' });
+        group.append(make('path', { class: 'pin-card', d: wedgePath(FIRST_RING, outer, seat.start, seat.end, 7) }));
+        if (pin.src) group.append(make('image', { href: pin.src, x: x - 17, y: y - 20, width: 34, height: 34 }));
+        else {
+          const keys = make('text', { x, y: y + 1, 'text-anchor': 'middle', 'font-size': 20, fill: '#254a37' });
+          keys.textContent = pin.label;
+          group.append(keys);
+        }
+        const label = make('text', { x, y: y + 30, 'text-anchor': 'middle', 'font-size': 12, fill: '#32342e' });
+        label.textContent = pin.shortLabel || pin.title;
+        group.append(label);
+        const [badgeX, badgeY] = pt(outer - 12, seat.end - .11);
+        group.append(make('circle', { cx: badgeX, cy: badgeY, r: 8, fill: '#fff', stroke: '#cbd2c8' }));
+        group.append(make('image', { href: '/img/ui/pin.svg', x: badgeX - 5, y: badgeY - 5, width: 10, height: 10 }));
+        group.addEventListener('pointerenter', () => this.selectPin(i));
+        group.addEventListener('focus', () => { this._intent('keyboard'); this.selectPin(i); });
+        group.addEventListener('click', (event) => { event.stopPropagation(); this._intent('click'); this.selectPin(i); this.activateSelection(); });
+        group.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); this._intent('keyboard'); this.selectPin(i); this.activateSelection(); }
+        });
+        this._pinGroups.push(group);
+        this._orbit.append(group);
+      });
+      if (this._showPlus && this._pins.length < 3) {
+        const seat = seatOf(7 - this._pins.length);
+        const [x, y] = pt((FIRST_RING + seat.inner - 8) / 2, seat.midA);
+        const plus = make('g', { class: 'pin-plus', role: 'button', tabindex: '0', 'aria-label': 'Add a shortcut to this demo' });
+        plus.append(make('circle', { cx: x, cy: y, r: 40, fill: 'transparent' }));
+        plus.append(make('circle', { cx: x, cy: y, r: 16, fill: 'rgba(255,255,255,.12)', stroke: '#d5dfd7', 'stroke-dasharray': '3 3' }));
+        plus.append(make('path', { d: 'M' + (x - 6) + ' ' + y + 'h12M' + x + ' ' + (y - 6) + 'v12', stroke: '#e0e8e1', 'stroke-width': 1.5 }));
+        const add = () => { this._intent('pin'); this.dispatchEvent(new CustomEvent('vortex-add-pin', { bubbles: true })); };
+        plus.addEventListener('click', add);
+        plus.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); add(); }
+        });
+        this._orbit.append(plus);
+      }
+    }
+
+    _build() {
+      const items = this._items;
+      const N = items.length;
+      const glassMode = this.hasAttribute('glass') && Boolean(GLASS);
+      const seats = Array.from({ length: N }, (_, i) => seatOf(i, this._winding));
+      this._geo = seats;
+      this._aim = (seats[Math.min(this._prefer, N - 1)] || seats[0]).midA * R2D + this._angle;
+
+      const outerMost = seats[N - 1].outer;
+      const half = outerMost + PADDING;
+      this._half = half;
+      const panel = half * 2;
+      const hubPct = ((HUB_RADIUS * 2) / panel) * 100;
+      const wellPct = (((HUB_RADIUS - RING_INSET - 10) * 2) / panel) * 100;
+
+      const box = contentSize();
+      const labelSize = this.hasAttribute('story') && N <= 6 && matchMedia('(max-width: 600px)').matches ? 18 : TITLE_PX;
+      const nameH = labelSize * 2 + 4;
+      const iconSide = Math.min(ARTWORK, Math.max(24, box.height - nameH - 1));
+
+      let defs = `
+        <filter id="vx-glow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="vx-ring" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.1" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="vx-liquid-shoulder" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+        <filter id="vx-liquid-halo" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="11"/></filter>
+        <linearGradient id="vx-preview-g" x1="18" y1="14" x2="46" y2="50" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#7ae0ff"/><stop offset=".35" stop-color="#7b5cff"/>
+          <stop offset=".7" stop-color="#ff5ad5"/><stop offset="1" stop-color="#ffb24a"/>
+        </linearGradient>
+        <symbol id="vx-finder" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#ececf1"/>
+          <path d="M6 10h26v44H14a8 8 0 0 1-8-8V10z" fill="#c8c8d0"/>
+          <path d="M32 10h26v36a8 8 0 0 1-8 8H32V10z" fill="#32b5e8"/>
+          <path d="M20 42c5 9 19 9 24 0" fill="none" stroke="#1c1c1e" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="23" cy="30" r="2.3" fill="#1c1c1e"/>
+          <circle cx="43" cy="30" r="2.3" fill="#1c1c1e"/>
+        </symbol>
+        <symbol id="vx-preview" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#f4f5f7"/>
+          <circle cx="32" cy="32" r="18" fill="url(#vx-preview-g)"/>
+          <circle cx="32" cy="32" r="7.5" fill="#1c1c1e"/>
+          <circle cx="32" cy="32" r="3.2" fill="#f4f5f7"/>
+        </symbol>
+        <symbol id="vx-comet" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#edf2ff"/>
+          <path d="M18 40c8-16 20-22 30-24" fill="none" stroke="#2f6bff" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="22" cy="44" r="10" fill="#111"/>
+          <circle cx="22" cy="44" r="4.5" fill="#edf2ff"/>
+        </symbol>
+        <symbol id="vx-hermes" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#ecece8"/>
+          <circle cx="32" cy="24" r="10" fill="#3a3a38"/>
+          <path d="M14 56c2-12 10-18 18-18s16 6 18 18" fill="#3a3a38"/>
+        </symbol>
+        <symbol id="vx-search" viewBox="0 0 64 64">
+          <circle cx="29" cy="29" r="13.5" fill="none" stroke="currentColor" stroke-width="3.6"/>
+          <path d="M39 39l14 14" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="vx-open" viewBox="0 0 64 64">
+          <rect x="12" y="12" width="40" height="40" rx="9" fill="none" stroke="currentColor" stroke-width="3.2"/>
+          <path d="M28 24h12v12M26 38l14-14" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="vx-grok" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#111"/>
+          <path d="M18 44c10-22 26-28 32-16" fill="none" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="30" cy="34" rx="11" ry="13" transform="rotate(-34 30 34)" fill="none" stroke="#f3f3f3" stroke-width="4"/>
+        </symbol>`;
+      if (glassMode) defs += `<path id="vx-liquid-contour" d="${GLASS.contour(HUB_RADIUS - RING_INSET, GLASS.resting)}" pathLength="100"/>`;
+
+      const wedges = [];
+      for (let k = 0; k < N; k++) {
+        const it = items[k];
+        const s = seats[k];
+        const glassPalette = glassMode ? GLASS.palette(it.fill) : null;
+        const d = wedgePath(s.inner, s.outer, s.start, s.end, CORNER);
+        const innerHL = arcPath(s.inner + 2, s.start, s.end, CORNER, 1);
+        const outerHL = arcPath(s.outer - 1.6, s.end, s.start, CORNER, 0);
+
+        defs += `<radialGradient id="vxg${k}" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="${f3(s.outer)}" fr="${f3(s.inner)}">
+          <stop offset="0" stop-color="#fff" stop-opacity=".42"/>
+          <stop offset=".12" stop-color="#fff" stop-opacity=".16"/>
+          <stop offset=".38" stop-color="#fff" stop-opacity=".05"/>
+          <stop offset=".68" stop-color="#fff" stop-opacity=".04"/>
+          <stop offset="1" stop-color="#fff" stop-opacity=".18"/>
+        </radialGradient>`;
+
+        const ic = iconSide;
+        const icX = s.cx - ic / 2;
+        const icY = s.cy - box.height / 2 + 2;
+        const lines = wrapLabel(it.label, box.width - 6, labelSize);
+        const lblY = icY + ic + 3.5 + labelSize;
+        const rx = ic * 0.22;
+
+        let iconEl;
+        if (SYMBOL_ICONS.has(it.icon)) {
+          iconEl = `<use href="#vx-${it.icon}" x="${f3(icX)}" y="${f3(icY)}" width="${f3(ic)}" height="${f3(ic)}"/>`;
+        } else {
+          const href = it.src || (it.domain ? fav(it.domain) : '');
+          const letter = (it.label || '?')[0].toUpperCase();
+          const plate = `
+            <rect class="ico-plate" x="${f3(icX)}" y="${f3(icY)}" width="${f3(ic)}" height="${f3(ic)}" rx="${f3(rx)}" fill="#fff"/>
+            <text x="${f3(s.cx)}" y="${f3(icY + ic / 2)}" font-size="${f3(ic * 0.46)}" fill="${it.fill || '#98a0ad'}" font-weight="700" text-anchor="middle" dominant-baseline="central">${esc(letter)}</text>`;
+          if (it.site && href) {
+            const back = ic * 0.66;
+            const front = ic * 0.64;
+            const bx = icX + ic - back;
+            const by = icY;
+            const fx = icX;
+            const fy = icY + ic - front;
+            const brx = back * 0.22;
+            const frx = front * 0.22;
+            defs += `<clipPath id="vxs${k}"><rect x="${f3(bx)}" y="${f3(by)}" width="${f3(back)}" height="${f3(back)}" rx="${f3(brx)}"/></clipPath>
+            <clipPath id="vxf${k}"><rect x="${f3(fx)}" y="${f3(fy)}" width="${f3(front)}" height="${f3(front)}" rx="${f3(frx)}"/></clipPath>`;
+            iconEl = `${plate}
+            <rect x="${f3(bx)}" y="${f3(by)}" width="${f3(back)}" height="${f3(back)}" rx="${f3(brx)}" fill="#f0f0f0"/>
+            <image class="ico" href="${esc(it.site)}" x="${f3(bx)}" y="${f3(by)}" width="${f3(back)}" height="${f3(back)}" clip-path="url(#vxs${k})" preserveAspectRatio="xMidYMid slice"/>
+            <rect x="${f3(fx)}" y="${f3(fy)}" width="${f3(front)}" height="${f3(front)}" rx="${f3(frx)}" fill="#fff"/>
+            <image class="ico" href="${esc(href)}" x="${f3(fx)}" y="${f3(fy)}" width="${f3(front)}" height="${f3(front)}" clip-path="url(#vxf${k})" preserveAspectRatio="xMidYMid slice"/>`;
+          } else {
+            iconEl = `${plate}
+            ${href ? `<image class="ico" href="${esc(href)}" x="${f3(icX)}" y="${f3(icY)}" width="${f3(ic)}" height="${f3(ic)}" clip-path="url(#vxc${k})" preserveAspectRatio="xMidYMid slice"/>` : ''}`;
+            defs += `<clipPath id="vxc${k}"><rect x="${f3(icX)}" y="${f3(icY)}" width="${f3(ic)}" height="${f3(ic)}" rx="${f3(rx)}"/></clipPath>`;
+            if (it.badge && BADGE_SRC[it.badge]) {
+              const b = ic * 0.5;
+              const bx = icX - b * 0.12;
+              const by = icY + ic - b * 0.72;
+              iconEl += `<circle cx="${f3(bx + b / 2)}" cy="${f3(by + b / 2)}" r="${f3(b / 2 + 1.1)}" fill="#fff"/>
+              <image href="${BADGE_SRC[it.badge]}" x="${f3(bx)}" y="${f3(by)}" width="${f3(b)}" height="${f3(b)}" preserveAspectRatio="xMidYMid slice"/>`;
+            }
+          }
+        }
+
+        const closeA = s.end - 0.16;
+        const closeR = s.inner + 16;
+        const [clx, cly] = pt(closeR, closeA);
+        s.clx = clx; s.cly = cly;
+
+        const t1 = `<text class="lbl" x="${f3(s.cx)}" y="${f3(lblY)}" font-size="${labelSize}">${esc(lines[0])}</text>`;
+        const t2 = lines[1]
+          ? `<text class="lbl" x="${f3(s.cx)}" y="${f3(lblY + labelSize + 2)}" font-size="${labelSize}">${esc(lines[1])}</text>`
+          : '';
+
+        wedges.push(`
+      <g class="wedge" data-i="${k}" role="button" tabindex="-1" aria-label="${esc(this._itemLabel(it))}" style="--fill:${it.fill || '#ececec'};--sel:${it.sel || SEL_FILL}${glassPalette ? ';--glass-dark:' + glassPalette.dark + ';--glass-selected-dark:' + glassPalette.selectedDark + ';--glass-rim:' + glassPalette.rim : ''}">
+        <path class="card" d="${d}"/>
+        <path class="sel" d="${d}"/>
+        <path class="glass" d="${d}" fill="url(#vxg${k})"/>
+        ${glassMode ? `<path class="glass-bevel" d="${d}"/>` : ''}
+        <path class="rim-in" d="${innerHL}"/>
+        <path class="rim-out" d="${outerHL}"/>
+        <g class="content" data-i="${k}">
+          <g class="ico-wrap">${iconEl}</g>
+          ${t1}${t2}
+        </g>
+        <g class="close upright" data-i="${k}" data-cx="${f3(clx)}" data-cy="${f3(cly)}" transform="translate(${f3(clx)} ${f3(cly)})">
+          <circle r="7.4" fill="rgba(32,30,29,.22)"/>
+          <path d="M-2.5-2.5l5 5M2.5-2.5l-5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+      </g>`);
+      }
+
+      // Outer turn draws on top, matching OverlayLayout hit-testing.
+      const wedgeMarkup = wedges.join('');
+
+      this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block; position: relative; aspect-ratio: 1/1; width: 100%;
+    container-type: inline-size;
+    font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; touch-action: pan-y; outline: none;
+    overflow: visible;
+  }
+  :host(:focus-visible) { outline: 3px solid #126d79; outline-offset: 4px; border-radius: 12px; }
+  .stage { position: absolute; inset: 0; overflow: visible; }
+  .stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+  .wedge { cursor: pointer; isolation: isolate; }
+  .wedge .card {
+    fill: var(--fill);
+    stroke: rgba(255,255,255,.35);
+    stroke-width: .8;
+    filter: drop-shadow(0 12px 20px rgba(32,30,29,.26)) drop-shadow(0 2px 4px rgba(32,30,29,.10));
+    transition: fill .22s ease;
+  }
+  .wedge .sel { fill: var(--sel, ${SEL_FILL}); opacity: 0; transition: opacity .22s ease; }
+  .wedge .glass { pointer-events: none; opacity: .85; mix-blend-mode: soft-light; }
+  .wedge .rim-in {
+    fill: none; stroke: rgba(255,255,255,.88); stroke-width: 3.6;
+    filter: blur(1.15px); pointer-events: none;
+  }
+  .wedge .rim-out {
+    fill: none; stroke: rgba(255,255,255,.55); stroke-width: 2.8;
+    filter: blur(.7px); pointer-events: none;
+  }
+  .wedge .lbl {
+    text-anchor: middle; fill: #201e1d; font-weight: 510;
+    paint-order: stroke; stroke: rgba(255,255,255,.45); stroke-width: .45px;
+  }
+  .wedge .close { display: none; }
+  .wedge.on .card { filter: drop-shadow(0 14px 24px rgba(32,30,29,.30)) drop-shadow(0 2px 5px rgba(32,30,29,.12)); }
+  .wedge.on .sel { opacity: 1; }
+  .wedge.on .rim-in { stroke: rgba(190,255,236,.9); stroke-width: 5.5; filter: blur(1.8px); }
+  .wedge.on .close { display: block; }
+  .wedge.on .ico-wrap { transform-box: fill-box; transform-origin: center; transform: scale(1.12); }
+  .coupling { pointer-events: none; }
+  .coupling path {
+    fill: none; stroke: var(--glow, ${MINT}); stroke-width: 12; stroke-linecap: round; opacity: .45;
+    filter: url(#vx-glow);
+  }
+
+  .halo {
+    position: absolute; left: 50%; top: 50%; width: ${f3(hubPct + 2.2)}%; aspect-ratio: 1;
+    transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle,
+      rgba(255,255,255,.0) 42%,
+      rgba(210,255,246,.22) 62%,
+      rgba(170,235,220,.18) 78%,
+      transparent 100%);
+  }
+  .ring { display: none; }
+  .hub-ring { pointer-events: none; }
+  .hub {
+    position: absolute; left: 50%; top: 50%;
+    width: ${f3(wellPct)}%; height: ${f3(wellPct)}%;
+    transform: translate(-50%,-50%); border-radius: 50%;
+    background: rgba(255,255,255,.16);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    box-shadow: inset 0 0 20px 6px rgba(220,255,248,.18);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0; box-sizing: border-box; overflow: hidden;
+    pointer-events: none; z-index: 3;
+    font-size: clamp(10px, 2.6cqi, 14px);
+  }
+  .hub .k, .hub .t, .hub .s { max-width: 68%; min-width: 0; }
+  .hub .k {
+    font-size: .62em; color: rgba(32,30,29,.62); margin-bottom: .28em; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-shadow: 0 1px 6px rgba(255,255,255,.75);
+  }
+  .hub .t {
+    font-weight: 700; color: #201e1d; font-size: 1em; line-height: 1.18;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; overflow-wrap: anywhere;
+    text-shadow: 0 1px 8px rgba(255,255,255,.8);
+  }
+  .hub .s {
+    font-size: .62em; color: rgba(32,30,29,.58); margin-top: .32em; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 1px 6px rgba(255,255,255,.75);
+  }
+  .hub.pulse { animation: vxpulse .45s ease; }
+  @keyframes vxpulse {
+    0% { transform: translate(-50%,-50%) scale(1); }
+    40% { transform: translate(-50%,-50%) scale(1.045); }
+    100% { transform: translate(-50%,-50%) scale(1); }
+  }
+  .hint {
+    position: absolute; left: 50%; bottom: -2.1em; transform: translateX(-50%);
+    font-size: clamp(10px, 2.3cqi, 12.5px); color: rgba(32,30,29,.48); white-space: nowrap;
+  }
+  .hint b { color: rgba(32,30,29,.72); font-weight: 600; }
+  :host([search]) .hint, :host([search]) .wedge .close,
+  :host([still]) .hint, :host([still]) .wedge .close { display: none !important; }
+  :host([search]) { --lift: 11%; }
+  :host([search]) .stage > svg { top: calc(-1 * var(--lift)); bottom: var(--lift); }
+  :host([search]) .hub,
+  :host([search]) .halo { top: calc(50% - var(--lift)); }
+  .qpill {
+    position: absolute; left: 50%; top: 5.5%;
+    transform: translateX(-50%);
+    z-index: 6; pointer-events: none;
+    display: none; align-items: center; gap: 7px;
+    background: #fff; color: #201e1d;
+    border-radius: 999px; padding: 8px 14px 8px 11px;
+    box-shadow: 0 10px 28px rgba(32,30,29,.18), 0 1px 0 rgba(255,255,255,.8);
+    font-size: clamp(13px, 3.6cqi, 17px); font-weight: 560;
+    letter-spacing: -0.018em; white-space: nowrap; line-height: 1;
+  }
+  :host([search]) .qpill { display: flex; top: 3.6%; }
+  :host([search]) .hub .k { display: block; }
+  .qpill svg {
+    position: static;
+    inset: auto;
+    display: block;
+    width: 14px; height: 14px;
+    flex: none;
+    overflow: visible;
+  }
+  .qtext { display: block; line-height: 1; }
+  .qcaret {
+    width: 1.5px; height: 0.95em; background: #007aff; border-radius: 1px;
+    align-self: center;
+    animation: vxc 1s steps(1) infinite;
+  }
+  .qcaret.idle { animation: vxc 1.1s steps(1) infinite; }
+  :host([instant]) .qcaret { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  @keyframes vxc { 50% { opacity: 0; } }
+  @media (hover: none) { .hint .m1 { display: none; } }
+  @media (hover: hover) { .hint .m2 { display: none; } }
+  @container (max-width: 520px) {
+    .hub { font-size: clamp(9px, 2.8cqi, 12px); }
+    .hub .k, .hub .s { display: none; }
+    .hub .t { -webkit-line-clamp: 2; font-size: 1em; max-width: 70%; }
+  }
+
+  .scene-ghost { pointer-events: none !important; z-index: 12; }
+  .qinput { display: none; }
+  .pin-seat { cursor: pointer; }
+  .pin-card { fill: #f4f4ed; stroke: rgba(255,255,255,.7); stroke-width: 1.2; filter: drop-shadow(0 5px 9px #0002); transition: fill .2s; }
+  .pin-seat.on .pin-card, .pin-seat:focus .pin-card { fill: #fff; stroke: #d3f3d7; stroke-width: 3; }
+  .pin-plus { cursor: pointer; }
+  :host([story]) .hub { background: rgba(250,250,245,.78); backdrop-filter: blur(22px); box-shadow: 0 0 28px 4px rgba(188,255,221,.3), inset 0 0 18px #fff8; font-size: clamp(12px,2.45cqi,17px); }
+  :host([story]) .hub .k { color: #404a42; font-size: .72em; }
+  :host([story]) .hub .s { color: #495549; font-size: .65em; }
+  :host([story]) .hub .k, :host([story]) .hub .t, :host([story]) .hub .s { max-width: 84%; }
+  :host([story]) .halo { background: none; box-shadow: 0 0 44px 14px rgba(184,243,212,.18); }
+  :host([story][search]) { --lift: 0%; }
+  :host([story]) .qtext { display: none; }
+  :host([story]) .qpill { pointer-events: auto; top: 2%; max-width: calc(100% - 30px); padding: 11px 16px; gap: 9px; }
+  :host([story]) .qinput { display: block; border: 0; outline: 0; background: none; min-width: 0; max-width: 34ch; color: #232722; font: inherit; padding: 0; }
+  :host([story]) .qpill:focus-within { outline: 2px solid #8bd1bd; outline-offset: 4px; }
+  :host([story]) .qcaret { display: none; }
+  :host([story]) .close { display: none !important; }
+  :host([story][reduce-motion]) *, :host([story][reduce-motion]) *::before { animation: none !important; transition: none !important; }
+  /* The same optical hierarchy as the Mac widget: translucent body, colored
+     shoulder, fine white bevel. Icons and captions remain independent of motion. */
+  :host([glass]) { --glass-ink: #222729; --glass-secondary: #485151; --glass-energy: .55; --glass-glow: #bcebdc; --glass-ambient: color-mix(in srgb, var(--glass-glow) 62%, white); }
+  :host([glass]) .wedge .card { fill-opacity: .68; stroke: #ffffffcc; stroke-width: 1.1; filter: drop-shadow(0 8px 10px #17242129); }
+  :host([glass]) .wedge .sel { fill-opacity: .70; }
+  :host([glass]) .wedge .glass { mix-blend-mode: screen; opacity: .65; }
+  :host([glass]) .glass-bevel { fill: none; stroke: #ffffffde; stroke-width: 1.4; pointer-events: none; }
+  :host([glass]) .wedge .rim-in { stroke: var(--glass-rim, #e6f6ef); stroke-width: 6; filter: blur(2.6px); opacity: .45; }
+  :host([glass]) .wedge .rim-out { stroke: #ffffffb3; stroke-width: 3.4; filter: blur(1.8px); }
+  :host([glass]) .wedge.on .rim-in { stroke: var(--glass-ambient); stroke-width: 9; filter: blur(3px); opacity: .65; }
+  :host([glass]) .wedge .lbl { fill: var(--glass-ink); stroke: none; font-weight: 530; }
+  :host([glass]) .ico-wrap { color: var(--glass-ink); }
+  :host([glass]) .hub { background: #eae8e4cc; border: none; box-shadow: none; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  :host([glass]) .hub .t { color: var(--glass-ink); text-shadow: none; font-weight: 620; }
+  :host([glass]) .hub .k, :host([glass]) .hub .s { color: var(--glass-secondary); text-shadow: none; }
+  :host([glass]) .hub.pulse { animation: none; }
+  :host([glass]) .halo, :host([glass]) .hub-ring { display: none; }
+  .liquid-hub { pointer-events: none; fill: none; }
+  .liquid-hub use { stroke: var(--glass-ambient); }
+  .liquid-hub .liquid-halo { stroke-width: 22; opacity: calc(.22 + var(--glass-energy) * .2); filter: url(#vx-liquid-halo); }
+  .liquid-hub .liquid-shoulder { stroke-width: 10; opacity: calc(.26 + var(--glass-energy) * .22); filter: url(#vx-liquid-shoulder); }
+  .liquid-hub .liquid-core { stroke-width: 2.8; opacity: .9; filter: url(#vx-ring); }
+  .liquid-hub .liquid-crest { stroke: #fff; stroke-width: 1; opacity: .82; }
+  .liquid-hub .liquid-sheen { stroke: #fff; stroke-width: 2; stroke-dasharray: 14 86; opacity: .62; filter: url(#vx-ring); }
+  :host([glass]) .pin-card { fill: #f1f4ede0; stroke: #ffffffc7; stroke-width: 1.3; }
+  :host([glass]) .pin-seat text { fill: var(--glass-ink); }
+  :host([glass]) .qpill { background: #fafbf6e8; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid #fff9; }
+  :host([glass]) .qpill svg { stroke: currentColor; }
+  :host([glass][appearance="dark"]) { --glass-ink: #f4f7f5; --glass-secondary: #d0ddd7; --glass-ambient: var(--glass-glow); }
+  :host([glass][appearance="dark"]) .wedge .card { fill: var(--glass-dark, #19221f); fill-opacity: .82; stroke: #ffffff2e; filter: drop-shadow(0 8px 12px #0006); }
+  :host([glass][appearance="dark"]) .wedge .sel { fill: var(--glass-selected-dark, #224c46); fill-opacity: .75; }
+  :host([glass][appearance="dark"]) .wedge .glass { opacity: .70; }
+  :host([glass][appearance="dark"]) .glass-bevel { stroke: var(--glass-rim, #e6f6ef); opacity: .38; stroke-width: .85; }
+  :host([glass][appearance="dark"]) .wedge .rim-in { stroke-width: 9; filter: blur(4.2px); opacity: .85; }
+  :host([glass][appearance="dark"]) .wedge .rim-out { stroke: var(--glass-rim, #e6f6ef); stroke-width: 5; filter: blur(3px); opacity: .60; }
+  :host([glass][appearance="dark"]) .wedge.on .rim-in { stroke-width: 12; opacity: 1; }
+  :host([glass][appearance="dark"]) .hub { background: #080d0bbb; box-shadow: inset 0 0 24px #b8ddcd08; }
+  :host([glass][appearance="dark"]) .liquid-crest { opacity: .38; }
+  :host([glass][appearance="dark"]) .pin-card { fill: #1b2925dd; stroke: #d9f1e44d; }
+  :host([glass][appearance="dark"]) .pin-seat.on .pin-card { fill: #2b4e42; stroke: #c3edda; }
+  :host([glass][appearance="dark"]) .qpill { background: #17231ee8; color: #f0f5f1; border-color: #c4ddce4d; }
+  :host([glass][appearance="dark"]) .qinput { color: #f0f5f1; }
+  :host([glass][appearance="dark"]) .qinput::placeholder { color: #c5d2cb; }
+  @media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+    :host([glass]) .wedge .card, :host([glass]) .wedge .sel, :host([glass]) .pin-card { fill-opacity: 1; }
+    :host([glass]) .hub, :host([glass]) .qpill { background: #f1f2ee; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    :host([glass][appearance="dark"]) .hub, :host([glass][appearance="dark"]) .qpill { background: #101914; }
+  }
+  :host([glass][reduce-motion]) *, :host([glass][reduce-motion]) *::before { animation: none !important; transition: none !important; }
+  @container (max-width: 420px) {
+    :host([story]) .hub { font-size: 12px; }
+    :host([glass]:not([search])) .hub { font-size: clamp(8px,3cqi,10px); }
+    :host([glass]:not([search])) .hub .t { max-width: 94%; overflow-wrap: normal; }
+    :host([glass][search]) .stage { --lift: -8%; }
+    :host([glass][search]) .qpill { top: 8%; }
+    :host([story][search]) .hub { font-size: 14px; }
+    :host([story][search]) .hub .k { display: block; font-size: 10px; }
+    :host([story][search]) .hub .t { max-width: 94%; font-size: 13px; overflow-wrap: normal; -webkit-line-clamp: 3; }
+    :host([story]) .qpill { font-size: 14px; padding: 10px 12px; }
+  }
+  @container (max-width: 300px) {
+    :host([story][search]) .hub .t { font-size: 11.5px; }
+  }
+
+</style>
+<div class="stage" part="stage">
+  <div class="halo"></div>
+  <svg viewBox="-${f3(half)} -${f3(half)} ${f3(panel)} ${f3(panel)}" role="group" aria-label="Window and shortcut cards">
+    <defs>${defs}</defs>
+    <g class="orbit">${wedgeMarkup}<g class="coupling"><path d=""/></g></g>
+    <circle class="hub-ring" r="${f3(HUB_RADIUS - RING_INSET)}" fill="none" stroke="#c8fff4" stroke-width="9" opacity=".4" filter="url(#vx-glow)"/>
+    <circle class="hub-ring" r="${f3(HUB_RADIUS - RING_INSET)}" fill="none" stroke="#f4fffe" stroke-width="1.7" opacity=".95" filter="url(#vx-ring)"/>
+    ${glassMode ? `<g class="liquid-hub" aria-hidden="true">
+      <use class="liquid-halo" href="#vx-liquid-contour"/>
+      <use class="liquid-shoulder" href="#vx-liquid-contour"/>
+      <use class="liquid-core" href="#vx-liquid-contour"/>
+      <use class="liquid-crest" href="#vx-liquid-contour"/>
+      <use class="liquid-sheen" href="#vx-liquid-contour"/>
+    </g>` : ''}
+  </svg>
+  <div class="ring"></div>
+  <div class="hub">
+    <div class="k"></div>
+    <div class="t"></div>
+    <div class="s"></div>
+  </div>
+  <div class="qpill">
+    <svg viewBox="0 0 16 16" fill="none" stroke="#201e1d" stroke-width="1.55" stroke-linecap="round" aria-hidden="true"><circle cx="6.7" cy="6.7" r="4.35"/><path d="M10 10.1L14.15 14.2"/></svg>
+    <input class="qinput" type="text" aria-label="Search the example spiral" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Search windows or tabs">
+    <span class="qtext"></span>
+    <span class="qcaret"></span>
+  </div>
+  ${this._noHint ? '' : '<div class="hint"><span class="m1"><b>Hover</b> to peek · <b>click</b> to switch</span><span class="m2"><b>Tap</b> to switch</span></div>'}
+</div>
+<span class="sr" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>`;
+
+      this.shadowRoot.querySelectorAll('image').forEach((im) =>
+        im.addEventListener('error', () => im.remove(), { once: true }));
+      this._orbit = this.shadowRoot.querySelector('.orbit');
+      this._wedgeEls = [...this.shadowRoot.querySelectorAll('.wedge')];
+      this._contentEls = [...this.shadowRoot.querySelectorAll('.content')];
+      this._uprightEls = [...this.shadowRoot.querySelectorAll('.upright')];
+      this._hub = this.shadowRoot.querySelector('.hub');
+      this._liquidPath = this.shadowRoot.querySelector('#vx-liquid-contour');
+      this._liquidSheen = this.shadowRoot.querySelector('.liquid-sheen');
+      this._hubK = this.shadowRoot.querySelector('.hub .k');
+      this._hubT = this.shadowRoot.querySelector('.hub .t');
+      this._hubS = this.shadowRoot.querySelector('.hub .s');
+      this._coupling = this.shadowRoot.querySelector('.coupling path');
+      this._qtext = this.shadowRoot.querySelector('.qtext');
+      this._qinput = this.shadowRoot.querySelector('.qinput');
+      this._qcaret = this.shadowRoot.querySelector('.qcaret');
+      this._sr = this.shadowRoot.querySelector('.sr');
+      if (this._query && !this.hasAttribute('managed')) {
+        this._hold = true;
+        this._entranceT = 0;
+        this._applyEntrance(0);
+      }
+
+      this.setAttribute('role', 'application');
+      this.setAttribute('tabindex', '0');
+      this.setAttribute('aria-label', this._query
+        ? `VortexFlow search overlay for ${this._query}`
+        : 'VortexFlow spiral. Arrow keys move between windows, Enter switches.');
+
+      this._bind();
+      if (this._reduced) { this._entranceT = 1; this._applyEntrance(1); }
+      this._vel = this._reduced ? 0 : this._speed;
+      if (!this._tickBound) {
+        this._tick = this._tick.bind(this);
+        this._tickBound = true;
+      }
+      this._last = performance.now();
+      cancelAnimationFrame(this._raf);
+      this._raf = requestAnimationFrame(this._tick);
+      this._drawCoupling();
+      this._syncGlassMotion();
+    }
+
+    playScene(name) {
+      const scene = SCENES[name];
+      if (!scene) return Promise.resolve();
+      const prevTyped = (this._qtext && this._qtext.textContent) || '';
+      cancelAnimationFrame(this._raf);
+      clearTimeout(this._typeTimer);
+      this._items = scene.items || DEFAULT_ITEMS;
+      this._query = scene.query || '';
+      this._noHint = true;
+      this._speed = 0;
+      this._angle = scene.spin || 0;
+      this._prefer = scene.select != null ? scene.select : 0;
+      this._active = -1;
+      this._entranceT = 0;
+      this.toggleAttribute('search', !!this._query);
+      this.setAttribute('still', '');
+      this._build();
+      if (this._qtext && prevTyped) this._qtext.textContent = prevTyped;
+      this._setActive(Math.min(this._prefer, this._items.length - 1), false);
+      this._applyEntrance(0);
+      this._hold = false;
+      this._enter();
+      const typeMs = this._query
+        ? 280 + this._query.length * 58 + (prevTyped && prevTyped !== this._query ? prevTyped.length * 26 : 0) + 1000
+        : 1200;
+      return new Promise((res) => { setTimeout(res, typeMs); });
+    }
+
+    /** Replay the wedge entrance on the current example, as if the overlay had just opened. */
+    playEntrance() {
+      if (this._reduced || !this._wedgeEls) return;
+      this._hold = false;
+      this._entranceT = 0;
+      this._applyEntrance(0);
+      cancelAnimationFrame(this._raf);
+      this._last = performance.now();
+      this._raf = requestAnimationFrame(this._tick);
+    }
+
+    hideSpiral() {
+      this.classList.remove('is-shown');
+      this.style.opacity = '0';
+    }
+
+    showSpiral() {
+      this.classList.add('is-shown');
+      this.style.opacity = '1';
+      this.style.pointerEvents = 'none';
+    }
+
+    _bind() {
+      const stage = this.shadowRoot.querySelector('.stage');
+      this._wedgeEls.forEach((w) => {
+        const i = +w.dataset.i;
+        w.addEventListener('pointerenter', () => this._setActive(i));
+        w.addEventListener('click', () => { this._intent('click'); this.focus({ preventScroll: true }); this._switch(i); });
+      });
+      stage.addEventListener('pointermove', (event) => {
+        const last = this._pointer;
+        this._pointer = { x: event.clientX, y: event.clientY };
+        if (!last || Math.abs(last.x - event.clientX) + Math.abs(last.y - event.clientY) > 2) this._intent('hover');
+      });
+      this._qinput?.addEventListener('input', () => {
+        this._intent('typing');
+        this.dispatchEvent(new CustomEvent('vortex-query', { detail: this._qinput.value, bubbles: true }));
+      });
+      if (this._hostBound) return;
+      this._hostBound = true;
+      this.addEventListener('focusin', () => this._intent('focus'));
+      this.addEventListener('keydown', (event) => {
+        if (!this.hasAttribute('searchable')) return;
+        const input = event.composedPath()[0] === this._qinput;
+        if (input) {
+          if (event.key === 'Enter') { event.preventDefault(); event.stopImmediatePropagation(); this._intent('keyboard'); this.activateSelection(); }
+          else if (event.key === 'ArrowDown') { event.preventDefault(); event.stopImmediatePropagation(); this.focus({ preventScroll: true }); }
+          else if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); this._intent('keyboard'); this.dispatchEvent(new CustomEvent('vortex-query', { detail: '', bubbles: true })); this.focus({ preventScroll: true }); }
+          else event.stopImmediatePropagation();
+          return;
+        }
+        this._intent('keyboard');
+        if (event.key.length === 1 && event.key !== ' ' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault(); event.stopImmediatePropagation();
+          this.dispatchEvent(new CustomEvent('vortex-query', { detail: (this._query || '') + event.key, bubbles: true }));
+          this.focusSearch();
+        } else if (event.key === 'Backspace') {
+          event.preventDefault(); event.stopImmediatePropagation();
+          this.dispatchEvent(new CustomEvent('vortex-query', { detail: (this._query || '').slice(0, -1), bubbles: true }));
+        }
+      });
+      stage.addEventListener('pointerenter', () => { this._inside = true; });
+      stage.addEventListener('pointerleave', () => { this._inside = false; });
+
+      if (this._speed) {
+        this.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const d = Math.max(-40, Math.min(40, e.deltaY));
+          this._angle += d * 0.32;
+          this._snapActiveToAim();
+        }, { passive: false });
+
+        let dragging = false, lastA = 0;
+        const angAt = (e) => {
+          const r = stage.getBoundingClientRect();
+          return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) / D2R;
+        };
+        stage.addEventListener('pointerdown', (e) => {
+          dragging = true; lastA = angAt(e); this._dragMoved = 0;
+        });
+        addEventListener('pointermove', (e) => {
+          if (!dragging) return;
+          const a = angAt(e); let d = a - lastA;
+          if (d > 180) d -= 360; if (d < -180) d += 360;
+          this._angle += d; this._dragMoved += Math.abs(d); lastA = a;
+          if (this._dragMoved > 2) this._snapActiveToAim();
+        });
+        addEventListener('pointerup', () => { dragging = false; });
+      }
+
+      this.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { this._step(1); e.preventDefault(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { this._step(-1); e.preventDefault(); }
+        else if (e.key === 'Enter' || e.key === ' ') {
+          this.activateSelection();
+          e.preventDefault();
+        }
+      });
+    }
+
+    _worldMid(i) {
+      let m = (this._geo[i].midA * R2D + this._angle) % 360;
+      if (m > 180) m -= 360; if (m < -180) m += 360;
+      return m;
+    }
+
+    _snapActiveToAim() {
+      let best = -1, bd = 1e9;
+      for (let i = 0; i < this._items.length; i++) {
+        let d = Math.abs(this._worldMid(i) - this._aim);
+        if (d > 180) d = 360 - d;
+        d += i * 0.12;
+        if (d < bd) { bd = d; best = i; }
+      }
+      if (best !== this._active) this._setActive(best);
+    }
+
+    _step(dir) {
+      const windows = this._items.length;
+      const count = windows + (this._pins || []).length;
+      const current = this._pinActive != null ? windows + this._pinActive : Math.max(0, this._active);
+      const next = (current + dir + count) % count;
+      if (next < windows) this._setActive(next);
+      else this.selectPin(next - windows);
+    }
+
+    _setActive(i, announce = true) {
+      if (i < 0 || i >= this._items.length || (i === this._active && this._pinActive == null)) return;
+      this._pinActive = null;
+      (this._pinGroups || []).forEach((group) => { group.classList.remove('on'); group.setAttribute('aria-pressed', 'false'); });
+      this._active = i;
+      const it = this._items[i];
+      this._wedgeEls.forEach((w) => {
+        const on = +w.dataset.i === i;
+        w.classList.toggle('on', on);
+        w.setAttribute('aria-pressed', String(on));
+      });
+      this._hubK.textContent = it.meta || '';
+      this._hubT.textContent = (it.title || it.label).replace(/…$/, '');
+      this._hubS.textContent = it.sub || '';
+      this._hubK.style.display = this._hubK.textContent ? '' : 'none';
+      this._hubS.style.display = this._hubS.textContent ? '' : 'none';
+      this._glow = it.glow || MINT;
+      this._setGlassGlow(it.glow || (GLASS ? GLASS.palette(it.fill).glow : MINT));
+      this.shadowRoot.querySelector('.hub-ring')?.setAttribute('stroke', this._glow);
+      if (this.hasAttribute('story') && !this.hasAttribute('glass')) this._hub.style.boxShadow = '0 0 28px 4px ' + this._glow + '4d, inset 0 0 18px #ffffff88';
+      if (this._coupling) this._coupling.parentElement.style.setProperty('--glow', this._glow);
+      this._drawCoupling();
+      if (announce) this.dispatchEvent(new CustomEvent('vortex-select', { detail: it, bubbles: true }));
+      if (announce && this._sr) this._sr.textContent = (it.title || it.label) + ', ' + (it.meta || it.label);
+    }
+
+    _drawCoupling() {
+      if (!this._coupling || this._active < 0) return;
+      const s = this._geo[this._active];
+      this._coupling.setAttribute('d', arcPath(s.inner - 4, s.start + 0.08, s.end - 0.08, 8, 1));
+    }
+
+    _switch(i) {
+      this._setActive(i);
+      const it = this._items[i];
+      this._hub.classList.remove('pulse');
+      void this._hub.offsetWidth;
+      this._hub.classList.add('pulse');
+      this.dispatchEvent(new CustomEvent('vortex-switch', { detail: it, bubbles: true }));
+    }
+
+    _enter() {
+      cancelAnimationFrame(this._raf);
+      this._last = performance.now();
+      this._raf = requestAnimationFrame(this._tick);
+      if (this._reduced) {
+        this._hold = false;
+        this._entranceT = 1;
+        this._applyEntrance(1);
+        if (this._qtext && this._query) this._qtext.textContent = this._query;
+        if (this._qcaret) this._qcaret.classList.add('idle');
+        return;
+      }
+      this._hold = false;
+      this._entranceT = 0;
+      if (this._query) this._typeQuery(this._query);
+    }
+
+    _typeQuery(text, done) {
+      if (!this._qtext) { if (done) done(); return; }
+      if (this._qcaret) this._qcaret.classList.remove('idle');
+      const start = this._qtext.textContent || '';
+      const run = (from) => {
+        let i = from;
+        if (i > 0 && start && from === start.length) {
+          const del = () => {
+            i -= 1;
+            this._qtext.textContent = start.slice(0, Math.max(0, i));
+            if (i > 0) this._typeTimer = setTimeout(del, 22);
+            else this._typeTimer = setTimeout(() => run(0), 80);
+          };
+          del();
+          return;
+        }
+        i = 0;
+        const step = () => {
+          i += 1;
+          this._qtext.textContent = text.slice(0, i);
+          if (i < text.length) {
+            this._typeTimer = setTimeout(step, 38 + Math.random() * 36);
+          } else {
+            if (this._qcaret) this._qcaret.classList.add('idle');
+            this._typeTimer = setTimeout(() => { if (done) done(); }, 120);
+          }
+        };
+        this._typeTimer = setTimeout(step, from ? 40 : 180);
+      };
+      if (start && start !== text) run(start.length);
+      else {
+        this._qtext.textContent = '';
+        run(0);
+      }
+    }
+
+    _applyEntrance(t) {
+      this._wedgeEls.forEach((w) => {
+        const k = +w.dataset.i;
+        const d = Math.min(1, Math.max(0, t * 1.45 - k * 0.035));
+        const e = 1 - Math.pow(1 - d, 3);
+        w.style.opacity = e;
+        if (e < 1) {
+          w.style.transform = `rotate(${(1 - e) * -28}deg)`;
+          w.style.transformOrigin = '0px 0px';
+        } else {
+          w.style.transform = '';
+          w.style.opacity = '';
+        }
+      });
+    }
+
+    _tick(now) {
+      const dt = Math.min(0.05, (now - this._last) / 1000);
+      this._last = now;
+
+      if (!this._hold && this._entranceT !== null && this._entranceT < 1) {
+        this._entranceT = Math.min(1, this._entranceT + dt * 0.9);
+        this._applyEntrance(this._entranceT);
+      }
+
+      const entering = this._hold || (this._entranceT !== null && this._entranceT < 1);
+      const target = (this._inside || this._reduced || entering) ? 0 : this._speed;
+      this._vel += (target - this._vel) * Math.min(1, dt * 3);
+      if (Math.abs(this._vel) > 0.01) {
+        this._angle = (this._angle + this._vel * dt) % 360;
+        if (!this._inside) this._snapActiveToAim();
+      }
+
+      this._orbit.setAttribute('transform', `rotate(${f3(this._angle)})`);
+      for (const c of this._contentEls) {
+        const i = +c.dataset.i, g = this._geo[i];
+        c.setAttribute('transform', `rotate(${f3(-this._angle)} ${g.cx} ${g.cy})`);
+      }
+      for (const c of this._uprightEls) {
+        const cx = +c.dataset.cx, cy = +c.dataset.cy;
+        c.setAttribute('transform', `translate(${f3(cx)} ${f3(cy)}) rotate(${f3(-this._angle)})`);
+      }
+      // Static examples settle instead of spending a frame on every idle refresh.
+      if ((this._speed || (!this._hold && this._entranceT < 1)) && this._visible !== false) {
+        this._raf = requestAnimationFrame(this._tick);
+      }
+    }
+  }
+
+  if (!customElements.get('vortex-spiral')) {
+    customElements.define('vortex-spiral', VortexSpiral);
+  }
+})();

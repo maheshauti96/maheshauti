@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, copyFileSync, readFileSync, readdirSync } from "node:fs";
+import { mkdirSync, writeFileSync, copyFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { site } from "../content/site.mjs";
@@ -105,6 +105,7 @@ write(join(docs, "robots.txt"), robots);
 write(join(docs, "sitemap.xml"), sitemap);
 write(join(docs, "favicon.svg"), favicon);
 copyFileSync(join(root, "src/theme.js"), join(docs, "js/theme.js"));
+copyFileSync(join(root, "src/vortex-spiral.js"), join(docs, "js/vortex-spiral.js"));
 copyFileSync(join(root, "src/theme.css"), join(docs, "css/site.css"));
 copyFileSync(join(root, "img/mahesh.jpg"), join(docs, "img/mahesh.jpg"));
 mkdirSync(join(docs, "img/products"), { recursive: true });
@@ -114,6 +115,18 @@ for (const name of readdirSync(join(root, "img/products"))) {
 mkdirSync(join(docs, "img/companies"), { recursive: true });
 for (const name of readdirSync(join(root, "img/companies"))) {
   copyFileSync(join(root, "img/companies", name), join(docs, "img/companies", name));
+}
+if (existsSync(join(root, "img/logos"))) {
+  mkdirSync(join(docs, "img/logos"), { recursive: true });
+  for (const name of readdirSync(join(root, "img/logos"))) {
+    copyFileSync(join(root, "img/logos", name), join(docs, "img/logos", name));
+  }
+}
+if (existsSync(join(root, "img/ui"))) {
+  mkdirSync(join(docs, "img/ui"), { recursive: true });
+  for (const name of readdirSync(join(root, "img/ui"))) {
+    copyFileSync(join(root, "img/ui", name), join(docs, "img/ui", name));
+  }
 }
 
 const roundTrip = readFileSync(join(docs, "index.html"), "utf8");

@@ -27,6 +27,9 @@ function motion() {
 
 function apply(theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  document.querySelectorAll("vortex-spiral").forEach((el) => {
+    if (typeof el.setAppearance === "function") el.setAppearance(theme);
+  });
 }
 
 function current() {
@@ -62,25 +65,6 @@ function bindClock() {
   };
   tick();
   setInterval(tick, 1000);
-}
-
-function bindSwitcher() {
-  const root = document.querySelector("[data-switcher]");
-  if (!root) return;
-  root.addEventListener("click", (event) => {
-    const tile = event.target.closest("[data-focus]");
-    if (!tile || !root.contains(tile)) return;
-    root.querySelectorAll("[data-focus]").forEach((node) => {
-      const on = node === tile;
-      node.classList.toggle("is-on", on);
-      const cap = node.querySelector("[data-tile-state]");
-      if (cap) cap.textContent = on ? "active" : "ready";
-    });
-    const status = root.querySelector("[data-switcher-status]");
-    if (status) {
-      status.textContent = `Active Focus: ${tile.getAttribute("data-focus")} · Instant window focus verified`;
-    }
-  });
 }
 
 function bindSessions() {
@@ -161,7 +145,7 @@ function bindSpy() {
 
 bindTheme();
 bindClock();
-bindSwitcher();
 bindSessions();
 bindJumps();
 bindSpy();
+apply(current());
