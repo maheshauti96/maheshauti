@@ -102,6 +102,7 @@ html[data-theme="light"] {
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -136,6 +137,8 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
   background-color: var(--bg);
   background-image: radial-gradient(
       ellipse 90% 55% at 12% 6%,
@@ -1203,6 +1206,7 @@ html[data-theme="light"] .inbound:hover {
 
   .actions {
     width: 100%;
+    min-width: 0;
   }
 
   .ship-grid,
@@ -1241,15 +1245,123 @@ html[data-theme="light"] .inbound:hover {
   }
 }
 
-@media (max-width: 520px) {
-  .mind-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 600px) {
+  :root {
+    --gutter: 16px;
+  }
+
+  .menubar {
+    padding: 0 14px;
+    gap: 8px;
+  }
+
+  .menubar-start {
+    gap: 8px;
+  }
+
+  .menubar-end {
+    gap: 10px;
+  }
+
+  .battery,
+  .clock {
+    display: none;
+  }
+
+  .sec-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .sec-title {
+    font-size: 20px;
+  }
+
+  .stage {
+    padding: 24px var(--gutter) 110px;
+    gap: 44px;
+  }
+
+  .dock {
+    bottom: 12px;
+    width: max-content;
+    max-width: calc(100vw - 20px);
+    padding: 4px 6px;
+    gap: 2px;
+  }
+
+  .dock a {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --gutter: 12px;
   }
 
   .hero,
   .card,
+  .mind-card,
+  .career,
   .inbound {
-    padding: 24px 20px;
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .portrait-wrap {
+    width: 112px;
+    height: 112px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 8vw, 36px);
+  }
+
+  .pitch {
+    font-size: 18px;
+  }
+
+  .bio {
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+
+  .spiral-stage {
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --gutter: 8px;
+  }
+
+  .menubar {
+    padding: 0 10px;
+    gap: 6px;
+  }
+
+  .limbo-pill span {
+    display: none;
+  }
+
+  .limbo-pill {
+    padding: 4px 6px;
+  }
+
+  .mark {
+    font-size: 12px;
+  }
+
+  .spiral-stage {
+    max-width: 240px;
   }
 }
 </style>
