@@ -38,6 +38,12 @@ function check(text, path) {
     if (!text.includes("vortexflow.io")) {
       failures.push(`${path}: missing VortexFlow`);
     }
+    if (!text.includes("github.com/maheshauti96/Limbo")) {
+      failures.push(`${path}: missing Limbo`);
+    }
+    if (/codenotch/i.test(text)) {
+      failures.push(`${path}: Codenotch must not appear`);
+    }
     if (!text.includes("https://x.com/MaheshBauti")) {
       failures.push(`${path}: missing X door`);
     }

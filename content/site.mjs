@@ -27,12 +27,12 @@ export const site = Object.freeze({
       repo: "https://github.com/maheshauti96/VortexFlow",
     },
     {
-      name: "Codenotch",
+      name: "Limbo",
       oneLiner:
-        "A macOS notch that pins coding-assistant usage limits from Claude, Cursor, Codex, Grok, and the rest.",
-      status: "building",
-      url: null,
-      repo: "https://github.com/maheshauti96/codenotch",
+        "A macOS menu-bar board for Cursor, Claude, Grok, and Codex sessions. Local signals only. No webhooks, no HTTP, no secrets in logs.",
+      status: "live",
+      url: "https://github.com/maheshauti96/Limbo",
+      repo: "https://github.com/maheshauti96/Limbo",
     },
   ],
   roles: [

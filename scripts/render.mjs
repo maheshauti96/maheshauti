@@ -90,9 +90,10 @@ function productBlock(product) {
   const link = product.url
     ? `<a href="${esc(product.url)}">${esc(product.name)}</a>`
     : esc(product.name);
-  const extra = product.repo
-    ? ` <a href="${esc(product.repo)}">Source</a>.`
-    : "";
+  const extra =
+    product.repo && product.repo !== product.url
+      ? ` <a href="${esc(product.repo)}">Source</a>.`
+      : "";
   return `<article class="item">
       <h3>${link}</h3>
       <p>${esc(product.oneLiner)}${extra}</p>
