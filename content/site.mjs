@@ -39,6 +39,32 @@ export const site = Object.freeze({
       logoInk: true,
     },
   ],
+  foundations: [
+    {
+      code: "01",
+      lens: "BOTTLENECK",
+      title: "Evaluation Over Prompting",
+      body: "Generation is cheap. Proving that an agent's code or output is correct is the true engineering bottleneck. I architect deterministic evaluation loops.",
+    },
+    {
+      code: "02",
+      lens: "PRIVACY",
+      title: "Zero-Telemetry Sovereignty",
+      body: "Why send private window state or agent transcripts across the network? VortexFlow and Limbo run 100% on-device. No accounts, no leaks.",
+    },
+    {
+      code: "03",
+      lens: "ARCHITECTURE",
+      title: "Boundary Discipline",
+      body: "Guards live at system boundaries. Internal models stay pure. Multi-agent concurrency fails unless domain ownership is strictly isolated.",
+    },
+    {
+      code: "04",
+      lens: "PERSPECTIVE",
+      title: "Astrophysics & Meditation",
+      body: "Cosmic scale and deep stillness sit right beside the keyboard. Judgment doesn't compress. Solitude accretes architectural taste.",
+    },
+  ],
   roles: [
     {
       org: "Quattr",
