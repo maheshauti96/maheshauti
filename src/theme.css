@@ -842,7 +842,7 @@ vortex-spiral {
 
 .stream-row {
   display: grid;
-  grid-template-columns: 12px minmax(4.5rem, auto) 1fr auto;
+  grid-template-columns: 12px 16px minmax(6.4rem, auto) 1fr auto;
   gap: 8px;
   align-items: center;
   width: 100%;
@@ -862,6 +862,20 @@ vortex-spiral {
 .stream-row.is-on {
   background: color-mix(in srgb, var(--ok-hot) 12%, transparent);
   border-color: color-mix(in srgb, var(--ok-hot) 30%, transparent);
+}
+
+.provider-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+html[data-theme="light"] .provider-icon {
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 .stream-dot {
@@ -1225,7 +1239,7 @@ html[data-theme="light"] .inbound:hover {
   }
 
   .stream-row {
-    grid-template-columns: 12px 1fr auto;
+    grid-template-columns: 12px 16px 1fr auto;
   }
 
   .stream-row .proj {

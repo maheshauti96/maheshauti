@@ -141,6 +141,7 @@ function sessionStream() {
     {
       id: "cursor",
       name: "Cursor",
+      icon: "/img/logos/cursor.png",
       project: "site-redesign",
       status: "running",
       dot: "dot-run",
@@ -150,6 +151,7 @@ function sessionStream() {
     {
       id: "claude",
       name: "Claude",
+      icon: "/img/logos/claude.png",
       project: "analytics-pipeline",
       status: "idle",
       dot: "dot-idle",
@@ -158,7 +160,8 @@ function sessionStream() {
     },
     {
       id: "grok",
-      name: "Grok 4.6",
+      name: "Grok Build",
+      icon: "/img/logos/grok.png",
       project: "portfolio-research",
       status: "stream",
       dot: "dot-stream",
@@ -168,6 +171,7 @@ function sessionStream() {
     {
       id: "codex",
       name: "Codex",
+      icon: "/img/logos/codex.svg",
       project: "eval-harness",
       status: "active",
       dot: "dot-work",
@@ -179,6 +183,7 @@ function sessionStream() {
     .map(
       (row) => `<button type="button" class="stream-row${row.on ? " is-on" : ""}" data-session="${esc(row.id)}">
         <span class="stream-dot ${row.dot}"></span>
+        <img class="provider-icon" src="${esc(row.icon)}" alt="" width="16" height="16">
         <strong>${esc(row.name)}</strong>
         <span class="proj">${esc(row.project)}</span>
         <span class="st ${row.st}">${esc(row.status)}</span>
