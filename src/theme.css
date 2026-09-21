@@ -180,6 +180,7 @@ html[data-theme="dark"] .theme-toggle .ico-moon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 36px;
   padding: 0 13px;
   border-radius: 999px;
@@ -189,6 +190,40 @@ html[data-theme="dark"] .theme-toggle .ico-moon {
   text-decoration: none;
   font-weight: 550;
   font-size: 14px;
+}
+
+.btn svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.socials {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--hair-2);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.social svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.social:hover {
+  background: var(--paper-2);
 }
 
 .btn:hover {
@@ -351,7 +386,15 @@ html[data-theme="dark"] .product-logo-ink {
 }
 
 .reach a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ink);
+}
+
+.reach svg {
+  width: 16px;
+  height: 16px;
 }
 
 footer {
@@ -363,22 +406,8 @@ footer {
   gap: 6px;
 }
 
-.nav-actions .btn-fill {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .nav-actions .btn-fill {
-    display: inline-flex;
-  }
-}
-
 @media (max-width: 520px) {
-  .nav-actions .btn:not(.btn-fill):not(.theme-toggle) {
-    display: none;
-  }
-
-  .nav-actions .btn-fill {
-    display: inline-flex;
+  .nav-actions .socials {
+    gap: 4px;
   }
 }

@@ -11,8 +11,9 @@ export const site = Object.freeze({
     photo: { src: "/img/mahesh.jpg", alt: "Mahesh Auti" },
   },
   doors: [
-    { label: "Talk on X", href: "https://x.com/MaheshBauti" },
+    { kind: "x", label: "Talk on X", href: "https://x.com/MaheshBauti" },
     {
+      kind: "linkedin",
       label: "Talk on LinkedIn",
       href: "https://www.linkedin.com/in/mahesh-auti-867b68118/",
     },
@@ -145,13 +146,14 @@ export const site = Object.freeze({
     },
   ],
   reach: [
-    { label: "X", href: "https://x.com/MaheshBauti" },
+    { kind: "x", label: "X", href: "https://x.com/MaheshBauti" },
     {
+      kind: "linkedin",
       label: "LinkedIn",
       href: "https://www.linkedin.com/in/mahesh-auti-867b68118/",
     },
-    { label: "GitHub", href: "https://github.com/maheshauti96" },
-    { label: "VortexFlow", href: "https://vortexflow.io/" },
+    { kind: "github", label: "GitHub", href: "https://github.com/maheshauti96" },
+    { kind: "web", label: "VortexFlow", href: "https://vortexflow.io/" },
   ],
   dns: {
     apexA: [

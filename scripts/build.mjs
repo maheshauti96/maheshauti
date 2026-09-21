@@ -53,6 +53,9 @@ function check(text, path) {
     if (!text.includes("https://x.com/MaheshBauti")) {
       failures.push(`${path}: missing X door`);
     }
+    if (!text.includes('aria-label="GitHub"')) {
+      failures.push(`${path}: missing GitHub icon`);
+    }
     if (!text.includes("I help founders go from idea to launch.")) {
       failures.push(`${path}: missing offer`);
     }
