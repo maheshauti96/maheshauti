@@ -48,6 +48,7 @@ function groupRoles(roles) {
       groups.push({
         org: role.org,
         orgUrl: role.orgUrl,
+        logo: role.logo,
         location: role.location,
         titles: [role],
       });
@@ -96,10 +97,10 @@ function jsonLd(site) {
   };
 }
 
-function productLogo(product) {
-  if (!product.logo) return "";
-  const ink = product.logo.endsWith(".svg") ? " product-logo-ink" : "";
-  return `<span class="product-logo-wrap"><img class="product-logo${ink}" src="${esc(product.logo)}" alt="" width="48" height="48"></span>`;
+function mark(src, ink) {
+  if (!src) return "";
+  const cls = ink ? " product-logo-ink" : "";
+  return `<span class="product-logo-wrap"><img class="product-logo${cls}" src="${esc(src)}" alt="" width="48" height="48"></span>`;
 }
 
 function productBlock(product) {
@@ -111,7 +112,7 @@ function productBlock(product) {
       ? ` <a href="${esc(product.repo)}">Source</a>.`
       : "";
   return `<article class="item product">
-      ${productLogo(product)}
+      ${mark(product.logo, product.logoInk)}
       <div class="product-copy">
         <h3>${link}</h3>
         <p>${esc(product.oneLiner)}${extra}</p>
@@ -133,9 +134,12 @@ function roleBlock(group) {
       </li>`;
     })
     .join("");
-  return `<article class="item">
-      <h3>${name}</h3>
-      <ul class="titles">${titles}</ul>
+  return `<article class="item product">
+      ${mark(group.logo, false)}
+      <div class="product-copy">
+        <h3>${name}</h3>
+        <ul class="titles">${titles}</ul>
+      </div>
     </article>`;
 }
 

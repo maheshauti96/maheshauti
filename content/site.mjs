@@ -36,12 +36,14 @@ export const site = Object.freeze({
       url: "https://github.com/maheshauti96/Limbo",
       repo: "https://github.com/maheshauti96/Limbo",
       logo: "/img/products/limbo.svg",
+      logoInk: true,
     },
   ],
   roles: [
     {
       org: "Quattr",
       orgUrl: "https://www.quattr.com/",
+      logo: "/img/companies/quattr.png",
       title: "Acting Engineering Manager",
       start: "2026-08",
       end: null,
@@ -71,6 +73,7 @@ export const site = Object.freeze({
     {
       org: "Springworks",
       orgUrl: "https://www.springworks.in/",
+      logo: "/img/companies/springworks.svg",
       title: "Software Development Engineer 2",
       start: "2022-05",
       end: "2023-03",
@@ -80,6 +83,7 @@ export const site = Object.freeze({
     {
       org: "LTI",
       orgUrl: "https://www.ltimindtree.com/",
+      logo: "/img/companies/lti.png",
       title: "Senior Product Engineer",
       start: "2021-09",
       end: "2022-05",
@@ -89,6 +93,7 @@ export const site = Object.freeze({
     {
       org: "Cuelogic Technologies",
       orgUrl: null,
+      logo: "/img/companies/cuelogic.png",
       title: "Senior Software Engineer",
       start: "2021-04",
       end: "2021-10",

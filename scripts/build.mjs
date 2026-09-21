@@ -50,6 +50,11 @@ function check(text, path) {
     if (!text.includes("/img/products/limbo.svg")) {
       failures.push(`${path}: missing Limbo logo`);
     }
+    for (const company of ["quattr.png", "springworks.svg", "lti.png", "cuelogic.png"]) {
+      if (!text.includes(`/img/companies/${company}`)) {
+        failures.push(`${path}: missing ${company}`);
+      }
+    }
     if (!text.includes("https://x.com/MaheshBauti")) {
       failures.push(`${path}: missing X door`);
     }
@@ -105,6 +110,10 @@ copyFileSync(join(root, "img/mahesh.jpg"), join(docs, "img/mahesh.jpg"));
 mkdirSync(join(docs, "img/products"), { recursive: true });
 for (const name of readdirSync(join(root, "img/products"))) {
   copyFileSync(join(root, "img/products", name), join(docs, "img/products", name));
+}
+mkdirSync(join(docs, "img/companies"), { recursive: true });
+for (const name of readdirSync(join(root, "img/companies"))) {
+  copyFileSync(join(root, "img/companies", name), join(docs, "img/companies", name));
 }
 
 const roundTrip = readFileSync(join(docs, "index.html"), "utf8");
