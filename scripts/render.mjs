@@ -86,6 +86,12 @@ function jsonLd(site) {
   };
 }
 
+function productLogo(product) {
+  if (!product.logo) return "";
+  const ink = product.logo.endsWith(".svg") ? " product-logo-ink" : "";
+  return `<span class="product-logo-wrap"><img class="product-logo${ink}" src="${esc(product.logo)}" alt="" width="48" height="48"></span>`;
+}
+
 function productBlock(product) {
   const link = product.url
     ? `<a href="${esc(product.url)}">${esc(product.name)}</a>`
@@ -94,9 +100,12 @@ function productBlock(product) {
     product.repo && product.repo !== product.url
       ? ` <a href="${esc(product.repo)}">Source</a>.`
       : "";
-  return `<article class="item">
-      <h3>${link}</h3>
-      <p>${esc(product.oneLiner)}${extra}</p>
+  return `<article class="item product">
+      ${productLogo(product)}
+      <div class="product-copy">
+        <h3>${link}</h3>
+        <p>${esc(product.oneLiner)}${extra}</p>
+      </div>
     </article>`;
 }
 

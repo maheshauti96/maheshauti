@@ -269,6 +269,33 @@ h2 {
   gap: 6px;
 }
 
+.product {
+  grid-template-columns: 48px 1fr;
+  column-gap: 14px;
+  align-items: start;
+}
+
+.product-logo-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--hair);
+  background: var(--card);
+  display: grid;
+  place-items: center;
+  padding: 6px;
+}
+
+.product-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+html[data-theme="dark"] .product-logo-ink {
+  filter: invert(1);
+}
+
 .item + .item {
   margin-top: 22px;
 }

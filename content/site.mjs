@@ -25,6 +25,7 @@ export const site = Object.freeze({
       status: "live",
       url: "https://vortexflow.io/",
       repo: "https://github.com/maheshauti96/VortexFlow",
+      logo: "/img/products/vortexflow.png",
     },
     {
       name: "Limbo",
@@ -33,6 +34,7 @@ export const site = Object.freeze({
       status: "live",
       url: "https://github.com/maheshauti96/Limbo",
       repo: "https://github.com/maheshauti96/Limbo",
+      logo: "/img/products/limbo.svg",
     },
   ],
   roles: [

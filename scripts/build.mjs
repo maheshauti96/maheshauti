@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, copyFileSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, copyFileSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { site } from "../content/site.mjs";
@@ -43,6 +43,12 @@ function check(text, path) {
     }
     if (/codenotch/i.test(text)) {
       failures.push(`${path}: Codenotch must not appear`);
+    }
+    if (!text.includes("/img/products/vortexflow.png")) {
+      failures.push(`${path}: missing VortexFlow logo`);
+    }
+    if (!text.includes("/img/products/limbo.svg")) {
+      failures.push(`${path}: missing Limbo logo`);
     }
     if (!text.includes("https://x.com/MaheshBauti")) {
       failures.push(`${path}: missing X door`);
@@ -93,6 +99,10 @@ write(join(docs, "favicon.svg"), favicon);
 copyFileSync(join(root, "src/theme.js"), join(docs, "js/theme.js"));
 copyFileSync(join(root, "src/theme.css"), join(docs, "css/site.css"));
 copyFileSync(join(root, "img/mahesh.jpg"), join(docs, "img/mahesh.jpg"));
+mkdirSync(join(docs, "img/products"), { recursive: true });
+for (const name of readdirSync(join(root, "img/products"))) {
+  copyFileSync(join(root, "img/products", name), join(docs, "img/products", name));
+}
 
 const roundTrip = readFileSync(join(docs, "index.html"), "utf8");
 if (roundTrip !== renderHome(site)) {
