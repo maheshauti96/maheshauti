@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Not here · Mahesh Auti</title>
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://maheshauti.com/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="color-scheme" content="light dark">
+  <script>(function(){var t="light";try{var s=localStorage.getItem("ma-theme");t=s==="light"||s==="dark"?s:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}catch(e){}document.documentElement.setAttribute("data-theme",t)})();</script>
+  <style>:root {
+  --paper: #f4f1ea;
+  --paper-2: #ebe6dc;
+  --ink: #1c1917;
+  --ink-2: rgba(28, 25, 23, 0.72);
+  --ink-3: #6f6a63;
+  --hair: rgba(28, 25, 23, 0.1);
+  --hair-2: rgba(28, 25, 23, 0.2);
+  --card: #fffdf8;
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  --wrap: 40rem;
+  --gutter: 24px;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #12110f;
+  --paper-2: #1b1916;
+  --ink: #f0ece6;
+  --ink-2: rgba(240, 236, 230, 0.74);
+  --ink-3: #9a948b;
+  --hair: rgba(240, 236, 230, 0.1);
+  --hair-2: rgba(240, 236, 230, 0.22);
+  --card: #1b1916;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-family: var(--sys);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 200;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.skip:focus {
+  top: 12px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 18px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+}
+
+.nav.is-stuck {
+  border-bottom-color: var(--hair);
+}
+
+.mark {
+  font-weight: 650;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.mark:hover {
+  text-decoration: none;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--hair-2);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--paper-2);
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.theme-toggle .ico-sun {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-toggle .ico-sun {
+  display: block;
+}
+
+html[data-theme="dark"] .theme-toggle .ico-moon {
+  display: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--hair-2);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 550;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background: var(--paper-2);
+  text-decoration: none;
+}
+
+.btn-fill {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.btn-fill:hover {
+  background: var(--ink);
+  color: var(--paper);
+  filter: brightness(1.15);
+}
+
+.hero {
+  padding-top: 36px;
+  padding-bottom: 40px;
+  display: grid;
+  gap: 22px;
+}
+
+.portrait {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--hair-2);
+}
+
+h1 {
+  font-size: clamp(36px, 8vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.who {
+  font-size: 1.25rem;
+  line-height: 1.35;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+
+.how,
+.now {
+  color: var(--ink-2);
+}
+
+.doors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+section {
+  padding-block: 28px;
+  border-top: 1px solid var(--hair);
+}
+
+h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--ink-3);
+  margin-bottom: 16px;
+}
+
+.item {
+  display: grid;
+  gap: 6px;
+}
+
+.item + .item {
+  margin-top: 22px;
+}
+
+.item h3 {
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.meta {
+  color: var(--ink-3);
+  font-size: 0.92rem;
+}
+
+.item p {
+  color: var(--ink-2);
+}
+
+.titles {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.titles li {
+  color: var(--ink-2);
+}
+
+.writing a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.writing a:hover {
+  text-decoration: underline;
+}
+
+.dek {
+  color: var(--ink-3);
+  font-size: 0.95rem;
+}
+
+.reach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  padding: 0;
+}
+
+.reach a {
+  color: var(--ink);
+}
+
+footer {
+  padding: 28px 0 48px;
+  border-top: 1px solid var(--hair);
+  color: var(--ink-3);
+  font-size: 0.95rem;
+  display: grid;
+  gap: 6px;
+}
+
+.nav-actions .btn-fill {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .nav-actions .btn-fill {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 520px) {
+  .nav-actions .btn:not(.btn-fill):not(.theme-toggle) {
+    display: none;
+  }
+
+  .nav-actions .btn-fill {
+    display: inline-flex;
+  }
+}
+</style>
+</head>
+<body>
+  <header class="nav wrap">
+    <a class="mark" href="/">Mahesh Auti</a>
+  </header>
+  <main class="wrap hero">
+    <h1>This page is not here.</h1>
+    <p><a href="/">Go to the home page.</a></p>
+  </main>
+  <script src="/js/theme.js"></script>
+</body>
+</html>
