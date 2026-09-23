@@ -115,9 +115,10 @@ html[data-theme="light"] {
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  font-optical-sizing: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -130,6 +131,28 @@ html {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass: rgba(8, 10, 16, 0.94);
+    --glass-2: rgba(8, 10, 16, 0.97);
+    --glass-blur: none;
+    --glass-sheen: none;
+    --glass-light: none;
+  }
+
+  html[data-theme="light"] {
+    --glass: #f7f8fb;
+    --glass-2: #ffffff;
+    --glass-blur: none;
+    --glass-sheen: none;
+    --glass-light: none;
+  }
+
+  .cursor-light {
+    display: none;
   }
 }
 
@@ -302,12 +325,27 @@ a:hover {
   font-size: 13px;
   font-weight: 500;
   background: rgba(6, 8, 14, 0.28);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
   border-bottom: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7),
     inset 0 -1px 0 rgba(255, 255, 255, 0.4), 0 10px 28px rgba(0, 0, 0, 0.28);
   color: var(--ink);
+}
+
+.menubar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 16px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(5, 6, 12, 0.45), transparent);
+}
+
+html[data-theme="light"] .menubar::after {
+  background: linear-gradient(to bottom, rgba(228, 235, 244, 0.7), transparent);
 }
 
 html[data-theme="light"] .menubar {
@@ -614,25 +652,29 @@ html[data-theme="light"] .dock {
 
 h1 {
   font-family: var(--display);
-  font-size: clamp(38px, 4.8vw, 56px);
-  line-height: 0.95;
+  font-size: clamp(2.4rem, 4.8vw, 3.5rem);
+  line-height: 1.02;
   margin: 0 0 10px;
-  letter-spacing: -0.04em;
-  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+  font-optical-sizing: auto;
   color: var(--ink);
 }
 
 .pitch {
-  font-size: 21px;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 560;
   margin: 0 0 12px;
 }
 
 .bio {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--ink-2);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--ink);
   max-width: 36rem;
 }
 
@@ -660,7 +702,16 @@ h1 {
   font-weight: 600;
   border: 1px solid transparent;
   color: inherit;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition: background 120ms ease-out, border-color 120ms ease-out, transform 100ms ease-out, filter 100ms ease-out;
+}
+
+.btn:active,
+.dock a:active,
+.theme-toggle:active,
+.stream-row:active,
+.write-card:active,
+.mind-card:active {
+  transform: scale(0.97);
 }
 
 .btn svg {
@@ -676,8 +727,7 @@ h1 {
 
 .btn-solid:hover {
   color: var(--bg);
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+  filter: brightness(1.06);
 }
 
 html[data-theme="light"] .btn-solid {
@@ -715,8 +765,10 @@ section {
 
 .sec-title {
   font-family: var(--display);
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--ink);
   display: flex;
   align-items: center;
@@ -861,8 +913,10 @@ html[data-theme="light"] .card-mark-wrap.ink .card-mark {
 
 .play,
 .stream {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 8px;
@@ -1034,7 +1088,6 @@ html[data-theme="light"] .provider-icon {
 .mind-card:hover {
   border-color: rgba(255, 255, 255, 0.28);
   box-shadow: var(--glass-rim-hot);
-  transform: translateY(-2px);
 }
 
 .mind-card em {
@@ -1163,7 +1216,6 @@ html[data-theme="light"] .provider-icon {
 .write-card:hover {
   border-color: rgba(255, 255, 255, 0.28);
   box-shadow: var(--glass-rim-hot);
-  transform: translateY(-1px);
   color: inherit;
 }
 
@@ -1219,8 +1271,10 @@ html[data-theme="light"] .inbound:hover {
 
 html[data-theme="light"] .play,
 html[data-theme="light"] .stream {
-  background: rgba(255, 255, 255, 0.34);
-  border-color: rgba(255, 255, 255, 0.62);
+  background: #eef2f7;
+  border-color: rgba(15, 23, 42, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .hero,
@@ -1301,9 +1355,25 @@ html[data-theme="light"] .stream {
   border-color: transparent;
 }
 
+.hero,
+.inbound,
+.career {
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+}
+
+.mind-card,
+.write-card,
+.dock {
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
 .inbound h2 {
   font-family: var(--display);
-  font-size: clamp(28px, 5vw, 38px);
+  font-size: clamp(1.75rem, 5vw, 2.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
   margin: 0 0 12px;
   color: var(--ink);
 }

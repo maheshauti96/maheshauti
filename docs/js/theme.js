@@ -191,8 +191,8 @@ function bindCursorLight() {
     light.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   };
   const loop = () => {
-    x += (tx - x) * 0.14;
-    y += (ty - y) * 0.14;
+    x += (tx - x) * 0.34;
+    y += (ty - y) * 0.34;
     place();
     requestAnimationFrame(loop);
   };
