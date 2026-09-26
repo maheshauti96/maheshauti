@@ -5,10 +5,18 @@ export const site = Object.freeze({
   person: {
     name: "Mahesh Auti",
     who: "I help founders go from idea to launch.",
+    headline: ["I help founders go", "from", "idea to launch."],
+    eyebrow: "Engineer. Builder. In the details.",
     how: "Full-stack development, AI agents, and agent orchestration.",
+    intro: "From the first sketch to the systems behind it. I build products people can use, and stay with them through launch.",
     location: "India",
     aside: "Open-source macOS tools and agent systems.",
-    photo: { src: "/img/mahesh.jpg", alt: "Mahesh Auti" },
+    photo: {
+      src: "/img/mahesh-natural.jpg",
+      alt: "Mahesh Auti",
+      lightSrc: "/img/mahesh-illustrated.jpg",
+      lightAlt: "Illustrated portrait of Mahesh Auti",
+    },
   },
   doors: [
     { kind: "x", label: "Talk on X", href: "https://x.com/MaheshBauti" },
@@ -21,22 +29,30 @@ export const site = Object.freeze({
   products: [
     {
       name: "VortexFlow",
+      tag: "macOS window switcher · MIT",
       oneLiner:
-        "A free open-source macOS window switcher. Mouse button or shortcut. MIT. No account, no telemetry.",
+        "Your windows, one shortcut away. A free macOS switcher that keeps your next window within reach, with a mouse button or keyboard shortcut.",
+      details: ["Free & open source", "No account", "No telemetry"],
+      action: "Explore VortexFlow",
       status: "live",
       url: "https://vortexflow.io/",
       repo: "https://github.com/maheshauti96/VortexFlow",
       logo: "/img/products/vortexflow.png",
+      demo: "spiral",
     },
     {
       name: "Limbo",
+      tag: "Coding agent session board",
       oneLiner:
-        "A macOS menu-bar board for Cursor, Claude, Grok, and Codex sessions. Local signals only. No webhooks, no HTTP, no secrets in logs.",
+        "A little clarity when your agents are busy. Follow Cursor, Claude, Grok, and Codex sessions together, right from your macOS menu bar.",
+      details: ["Local signals only", "Open source", "Built for macOS"],
+      action: "View Limbo on GitHub",
       status: "live",
       url: "https://github.com/maheshauti96/Limbo",
       repo: "https://github.com/maheshauti96/Limbo",
       logo: "/img/products/limbo.svg",
       logoInk: true,
+      demo: "sessions",
     },
   ],
   foundations: [
@@ -56,7 +72,7 @@ export const site = Object.freeze({
       code: "03",
       lens: "HANDS",
       title: "Still in the Code",
-      body: "A title doesn't move me off the keyboard. I lead by writing the system — agents, full-stack, the path that actually has to work.",
+      body: "A title doesn't move me off the keyboard. I lead by writing the system, including the agents, the full stack, and the path that has to work.",
     },
     {
       code: "04",
@@ -154,6 +170,11 @@ export const site = Object.freeze({
       notes: [],
     },
   ],
+  blog: {
+    title: "Notes from the work.",
+    description: "Thoughts on AI, engineering, and the decisions behind building useful products.",
+  },
+  // Add a published post here. The blog and homepage sort entries by date.
   writing: [
     {
       title:

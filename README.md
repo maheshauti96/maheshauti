@@ -8,6 +8,25 @@ Personal site. Facts live in `content/site.mjs`. `npm run build` writes `docs/` 
 npm run build
 ```
 
+## Add a blog post
+
+Add an entry to `writing` in `content/site.mjs`:
+
+```js
+{
+  title: "Your article title",
+  href: "https://www.linkedin.com/pulse/your-published-article",
+  date: "2026-09-26", // Publication date, YYYY-MM-DD.
+  dek: "A short summary of the article.",
+},
+```
+
+Run `npm run build`. The `/blog/` page lists every entry, newest first, and
+highlights the latest post. The homepage shows the three newest posts. Both
+update from this one list; no template changes are needed for the next post.
+Article links open the original publication. Commit the generated `docs/`
+changes when publishing through GitHub Pages.
+
 ## GitHub Pages
 
 Repo settings, Pages:

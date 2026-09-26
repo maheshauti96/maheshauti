@@ -1,23 +1,11 @@
 const KEY = "ma-theme";
 
 const SESSION_LOG = {
-  cursor:
-    "Active Cursor session · process: cursor-agent-worker · local file locks verified",
-  claude:
-    "Idle Claude session · process: claude-code-engine · listening on stdin",
-  grok: "Active Grok session · process: grok-build-plan · local JSONL turn stream",
-  codex:
-    "Active Codex session · process: app-server · thread-writer lock held",
+  cursor: "Cursor is working on site-redesign. Select a session to explore this demo.",
+  claude: "Claude is idle on analytics-pipeline, ready for the next instruction.",
+  grok: "Grok Build is working through portfolio-research.",
+  codex: "Codex is working on eval-harness.",
 };
-
-const SPY_IDS = [
-  "overview",
-  "shipped",
-  "foundations",
-  "track",
-  "writing",
-  "inbound",
-];
 
 function motion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -27,6 +15,13 @@ function motion() {
 
 function apply(theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} theme`);
+  });
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    "content",
+    theme === "dark" ? "#101514" : "#f5f5f0",
+  );
   document.querySelectorAll("vortex-spiral").forEach((el) => {
     el.setAttribute("appearance", theme);
     el.setAttribute("glass", "");
@@ -44,7 +39,11 @@ function bindTheme() {
     if (!button) return;
     const next = current() === "dark" ? "light" : "dark";
     apply(next);
-    localStorage.setItem(KEY, next);
+    try {
+      localStorage.setItem(KEY, next);
+    } catch {
+      // The selected theme still works when browser storage is unavailable.
+    }
   });
 }
 
@@ -53,45 +52,35 @@ function istClock(date = new Date()) {
     timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: false,
   }).format(date);
   return `${time} IST`;
 }
 
-function iosClock(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Kolkata",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).formatToParts(date);
-  const hour = parts.find((p) => p.type === "hour")?.value || "9";
-  const minute = parts.find((p) => p.type === "minute")?.value || "41";
-  return `${hour}:${minute}`;
-}
-
 function bindClock() {
-  const istEl = document.querySelector("[data-ist-clock]");
-  const iosEl = document.querySelector("[data-ios-clock]");
+  const el = document.querySelector("[data-ist-clock]");
+  if (!el) return;
   const tick = () => {
-    if (istEl) istEl.textContent = istClock();
-    if (iosEl) iosEl.textContent = iosClock();
+    el.textContent = istClock();
   };
   tick();
-  setInterval(tick, 1000);
+  setInterval(tick, 60_000);
 }
 
 function bindSessions() {
   const root = document.querySelector("[data-sessions]");
   if (!root) return;
+  const log = root.closest(".screen")?.querySelector("[data-session-log]");
+  root.querySelectorAll("[data-session]").forEach((node) => {
+    node.setAttribute("aria-pressed", String(node.classList.contains("is-on")));
+  });
   root.addEventListener("click", (event) => {
     const row = event.target.closest("[data-session]");
     if (!row || !root.contains(row)) return;
     root.querySelectorAll("[data-session]").forEach((node) => {
       node.classList.toggle("is-on", node === row);
+      node.setAttribute("aria-pressed", String(node === row));
     });
-    const log = root.querySelector("[data-session-log]");
     const key = row.getAttribute("data-session");
     if (log && SESSION_LOG[key]) log.textContent = SESSION_LOG[key];
   });
@@ -100,10 +89,11 @@ function bindSessions() {
 let holdSpy = false;
 
 function setSpy(id) {
-  document.querySelectorAll("[data-jump]").forEach((node) => {
-    const match = node.getAttribute("data-jump") === id;
-    const inSpy = SPY_IDS.includes(node.getAttribute("data-jump"));
-    if (inSpy) node.classList.toggle("is-on", match);
+  document.querySelectorAll("nav [data-jump]").forEach((node) => {
+    const active = node.getAttribute("data-jump") === id;
+    node.classList.toggle("is-on", active);
+    if (active) node.setAttribute("aria-current", "location");
+    else node.removeAttribute("aria-current");
   });
 }
 
@@ -111,7 +101,9 @@ function jumpTo(id) {
   const el = document.getElementById(id);
   if (!el) return;
   holdSpy = true;
-  if (SPY_IDS.includes(id)) setSpy(id);
+  setSpy(id);
+  el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
   el.scrollIntoView({ behavior: motion(), block: "start" });
   history.replaceState(null, "", `#${id}`);
   const release = () => {
@@ -124,6 +116,7 @@ function jumpTo(id) {
 
 function bindJumps() {
   document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const link = event.target.closest("[data-jump]");
     if (!link) return;
     const id = link.getAttribute("data-jump");
@@ -134,89 +127,37 @@ function bindJumps() {
 }
 
 function bindSpy() {
-  const sections = SPY_IDS.map((id) => document.getElementById(id)).filter(
-    Boolean,
-  );
+  const sections = [...document.querySelectorAll("[data-section]")];
   if (!sections.length) return;
+  const bar = document.querySelector(".menubar");
 
   const sync = () => {
     if (holdSpy) return;
     const max = document.documentElement.scrollHeight - window.innerHeight;
     if (max > 0 && window.scrollY >= max - 48) {
-      setSpy(SPY_IDS.at(-1));
+      setSpy(sections.at(-1).id);
       return;
     }
-    const line = 120;
-    let currentId = SPY_IDS[0];
+    const line = (bar ? bar.offsetHeight : 0) + 32;
+    let currentId = sections[0].id;
     for (const section of sections) {
       if (section.getBoundingClientRect().top <= line) currentId = section.id;
     }
     setSpy(currentId);
   };
 
+  let pendingFrame = null;
+  const schedule = () => {
+    if (pendingFrame !== null) return;
+    pendingFrame = requestAnimationFrame(() => {
+      pendingFrame = null;
+      sync();
+    });
+  };
+
   sync();
-  window.addEventListener("scroll", sync, { passive: true });
-}
-
-function bindGlassLight() {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const panes = ".hero, .card, .mind-card, .write-card, .career, .inbound, .dock";
-  document.addEventListener(
-    "pointermove",
-    (event) => {
-      const pane = event.target.closest(panes);
-      if (!pane) return;
-      const box = pane.getBoundingClientRect();
-      if (!box.width || !box.height) return;
-      pane.style.setProperty("--lx", `${((event.clientX - box.left) / box.width) * 100}%`);
-      pane.style.setProperty("--ly", `${((event.clientY - box.top) / box.height) * 100}%`);
-    },
-    { passive: true },
-  );
-}
-
-function bindCursorLight() {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  if (matchMedia("(pointer: coarse)").matches) return;
-  const light = document.createElement("div");
-  light.className = "cursor-light";
-  light.setAttribute("aria-hidden", "true");
-  document.body.prepend(light);
-  let x = window.innerWidth * 0.5;
-  let y = 72;
-  let tx = x;
-  let ty = y;
-  let visible = false;
-  const place = () => {
-    light.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-  };
-  const loop = () => {
-    x += (tx - x) * 0.34;
-    y += (ty - y) * 0.34;
-    place();
-    requestAnimationFrame(loop);
-  };
-  document.addEventListener(
-    "pointermove",
-    (event) => {
-      if (event.pointerType && event.pointerType !== "mouse") return;
-      tx = event.clientX;
-      ty = event.clientY;
-      if (!visible) {
-        visible = true;
-        x = tx;
-        y = ty;
-        light.classList.add("is-on");
-      }
-    },
-    { passive: true },
-  );
-  document.documentElement.addEventListener("pointerleave", () => {
-    visible = false;
-    light.classList.remove("is-on");
-  });
-  place();
-  requestAnimationFrame(loop);
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
 }
 
 bindTheme();
@@ -224,6 +165,4 @@ bindClock();
 bindSessions();
 bindJumps();
 bindSpy();
-bindGlassLight();
-bindCursorLight();
 apply(current());

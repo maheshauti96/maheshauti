@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync, copyFileSync, readFileSync, readdirSync, exis
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { site } from "../content/site.mjs";
-import { renderHome, render404 } from "./render.mjs";
+import { renderHome, renderBlog, render404 } from "./render.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docs = join(root, "docs");
@@ -31,7 +31,7 @@ function check(text, path) {
   for (const rule of FORBIDDEN) {
     if (rule.test(text)) failures.push(`${path}: matched ${rule}`);
   }
-  if (path.endsWith("index.html")) {
+  if (path === "docs/index.html") {
     if (!text.includes("Acting Engineering Manager")) {
       failures.push(`${path}: missing current title`);
     }
@@ -90,6 +90,7 @@ Sitemap: ${site.origin}/sitemap.xml
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${site.origin}/</loc></url>
+  <url><loc>${site.origin}/blog/</loc></url>
 </urlset>
 `;
 
@@ -98,6 +99,7 @@ mkdirSync(join(docs, "js"), { recursive: true });
 mkdirSync(join(docs, "css"), { recursive: true });
 
 write(join(docs, "index.html"), renderHome(site));
+write(join(docs, "blog/index.html"), renderBlog(site));
 write(join(docs, "404.html"), render404(site));
 write(join(docs, "CNAME"), "maheshauti.com\n");
 write(join(docs, ".nojekyll"), "");
@@ -108,7 +110,10 @@ copyFileSync(join(root, "src/theme.js"), join(docs, "js/theme.js"));
 copyFileSync(join(root, "src/vortex-glass.js"), join(docs, "js/vortex-glass.js"));
 copyFileSync(join(root, "src/vortex-spiral.js"), join(docs, "js/vortex-spiral.js"));
 copyFileSync(join(root, "src/theme.css"), join(docs, "css/site.css"));
-copyFileSync(join(root, "img/mahesh.jpg"), join(docs, "img/mahesh.jpg"));
+for (const src of [site.person.photo.src, site.person.photo.lightSrc]) {
+  const relativePath = src.slice(1);
+  copyFileSync(join(root, relativePath), join(docs, relativePath));
+}
 mkdirSync(join(docs, "img/products"), { recursive: true });
 for (const name of readdirSync(join(root, "img/products"))) {
   copyFileSync(join(root, "img/products", name), join(docs, "img/products", name));
